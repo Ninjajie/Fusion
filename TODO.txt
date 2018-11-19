@@ -1,0 +1,10 @@
+TODO for CPU version of PBD
+- reread the PBD paper to understand how it works
+- figure out how Unity winds its vertices
+- import the PBD class structure into Unity
+- look into the official PBD implementation to steal some designs
+
+TODO for usability
+- use a quad to represent the cloth size, then specify a size and generate
+    a cloth mesh on the fly to replace the quad
+- duplicate the cloth mesh and reverse normals for double sided shading
