@@ -39,6 +39,11 @@ public class ClothSimulator : MonoBehaviour {
     // unity data
     Mesh mesh;
 
+    // collision stuff TODO: hacky solution
+    public Vector3 sphereCenter;
+    public float sphereRadius;
+    public bool useSphereCollision;
+
     // Use this for initialization
     void Start () {
         mesh = GetComponent<MeshFilter>().mesh;
@@ -203,11 +208,10 @@ public class ClothSimulator : MonoBehaviour {
         ApplyExplicitEuler(dt);
 
         // step 8: TODO: clear current collisions and generate new collisions
-        //clearCollisionConstraints();
-        //for (auto & s : spheres) {
-        //    s.move(dt);
-        //    generateCollisionConstraints(s);
-        //}
+        ClearCollisionConstraints();
+        if (useSphereCollision) {
+            GenerateCollisionConstraints(sphereCenter, sphereRadius);
+        }
 
         // step 9-11: project constraints iterationNum times
         for (int j = 0; j < iterationNum; j++) {
@@ -241,7 +245,7 @@ public class ClothSimulator : MonoBehaviour {
         // TODO: there's a smarter way of doing this
         if (!useSmartDamping) {
             for (int i = 0; i < numParticles; i++) {
-                velocities[i] *= 0.98f;
+                velocities[i] *= 0.998f;
             }
         }
         else {
@@ -297,6 +301,19 @@ public class ClothSimulator : MonoBehaviour {
         }
     }
 
+    public void ClearCollisionConstraints() {
+        collisionConstraints.Clear();
+    }
+
+    public void GenerateCollisionConstraints(Vector3 center, float radius) {
+        for (int i = 0; i < numParticles; i++) {
+            if ((projectedPositions[i] - center).magnitude <= radius) {
+                collisionConstraints.Add(new CollisionConstraint(i, positions[i],
+                                                   projectedPositions[i], sphereCenter, sphereRadius));
+            }
+        }
+    }
+
     public void ApplyExplicitEuler(float dt) {
         for (int i = 0; i < numParticles; i++) {
             projectedPositions[i] = positions[i] + velocities[i] * dt;
@@ -344,15 +361,15 @@ public class ClothSimulator : MonoBehaviour {
         for (int i = 0; i < numParticles; i++) {
             velocities[i] *= 0.998f;
         }
-        //// do simple ground friction by setting speed of objects on ground to zero
-        //for (int i = 0; i < numParticles; i++) {
-        //    if (positions[i][1] == 0) {
-        //        velocities[i][0] *= .9;
-        //        velocities[i][2] *= .9;
-        //        if (std::abs(velocities[i][0] < 0.2)) velocities[i][0] = 0;
-        //        if (std::abs(velocities[i][2] < 0.2)) velocities[i][2] = 0;
-        //    }
-        //}
+        // do simple ground friction by setting speed of objects on ground to zero
+        for (int i = 0; i < numParticles; i++) {
+            if (positions[i][1] == 0) {
+                velocities[i][0] *= 0.9f;
+                velocities[i][2] *= 0.9f;
+                if (Mathf.Abs(velocities[i][0]) < 0.2f) velocities[i][0] = 0;
+                if (Mathf.Abs(velocities[i][2]) < 0.2f) velocities[i][2] = 0;
+            }
+        }
     }
 
     
