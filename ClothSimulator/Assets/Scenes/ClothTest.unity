@@ -124,7 +124,6 @@ GameObject:
   - component: {fileID: 37713298}
   - component: {fileID: 37713297}
   - component: {fileID: 37713296}
-  - component: {fileID: 37713295}
   - component: {fileID: 37713300}
   m_Layer: 0
   m_Name: Cloth
@@ -133,19 +132,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &37713295
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 37713294}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f359bbc3dd2e11c498c2da15a18b91fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 1
-  index: 0
 --- !u!64 &37713296
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -228,16 +214,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timestep: 0.02
   iterationNum: 5
-  vertexMass: 2
+  vertexMass: 1
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 10
   columns: 10
+  useSmartDamping: 1
   distanceWeight: 1
   bendingWeight: 0.5
-  dampingStiffness: 0.02
+  dampingStiffness: 0.01
   pointConstraintIndices: 6e00000078000000
+  groundPlane: -2
+  useGroundConstraint: 0
   useDistanceConstraint: 1
-  useBendingConstraint: 0
+  useBendingConstraint: 1
 --- !u!1 &1326018001
 GameObject:
   m_ObjectHideFlags: 0

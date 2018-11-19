@@ -10,6 +10,7 @@ public class ClothSimulator : MonoBehaviour {
     public Vector3 gravity;
     public int rows = 10;
     public int columns = 10;
+    public bool useSmartDamping;
 
     // constraint weights
     public float distanceWeight = 0.8f;
@@ -18,6 +19,8 @@ public class ClothSimulator : MonoBehaviour {
 
     // constraint data
     public int[] pointConstraintIndices;
+    public float groundPlane;
+    public bool useGroundConstraint;
     public bool useDistanceConstraint;
     public bool useBendingConstraint;
 
@@ -29,7 +32,8 @@ public class ClothSimulator : MonoBehaviour {
     private float invMass;
     private List<Constraint> constraints = new List<Constraint>();
     private List<Constraint> collisionConstraints = new List<Constraint>();
-    private List<Constraint> pointConstraints = new List<Constraint>();
+    private List<PointConstraint> pointConstraints = new List<PointConstraint>();
+    private GroundConstraint ground = null;
     private int numParticles;
 
     // unity data
@@ -180,11 +184,14 @@ public class ClothSimulator : MonoBehaviour {
                 constraints.Add(new BendingConstraint(indices, restAngle, bendingWeight));
             }
         }
+        if (useGroundConstraint) {
+            ground = new GroundConstraint(groundPlane);
+        }
     }
 
-    void FixedUpdate () {
+    void Update () {
         // TODO: set dt to deltaTime for now. change this later for more customization
-        float dt = Time.fixedDeltaTime;
+        float dt = Time.deltaTime;
 
         // step 5: apply external forces
         ApplyExternalForce(gravity, dt);
@@ -232,8 +239,61 @@ public class ClothSimulator : MonoBehaviour {
 
     public void DampVelocity(float dampingStiffness) {
         // TODO: there's a smarter way of doing this
-        for (int i = 0; i < numParticles; i++) { 
-            velocities[i] *= 0.98f;
+        if (!useSmartDamping) {
+            for (int i = 0; i < numParticles; i++) {
+                velocities[i] *= 0.98f;
+            }
+        }
+        else {
+            // first compute the center of mass's position and velocity
+            Vector3 centerMassPosition = Vector3.zero;
+            Vector3 centerMassVelocity = Vector3.zero;
+            float massSum = 0;
+            float mass = invMass;
+
+            for (int i = 0; i < numParticles; i++) {
+                massSum += mass;
+                centerMassPosition += positions[i] * mass;
+                centerMassVelocity += velocities[i] * mass;
+            }
+            centerMassPosition /= massSum;
+            centerMassVelocity /= massSum;
+
+            // now compute L = sum of all r cross mass * velocity
+            // also compute I = sum of rs * rs_transpose * mass
+            Vector3 L = Vector3.zero;
+            Matrix4x4 I = Matrix4x4.zero;
+
+            for (int i = 0; i < numParticles; i++) {
+                //  r is position - center of mass
+                Vector3 r = positions[i] - centerMassPosition;
+                L += Vector3.Cross(r, mass * velocities[i]);
+                // rs = [ 0      -r.z     r.y  ]
+                //        r.z     0      -r.x
+                //       -r.y     r.x     0
+                Matrix4x4 rs = Matrix4x4.zero;
+                rs[0, 1] = -r[2];
+                rs[0, 2] = r[1];
+                rs[1, 0] = r[2];
+                rs[1, 2] = -r[0];
+                rs[2, 0] = -r[1];
+                rs[2, 1] = r[0];
+                rs[3, 3] = 1;
+                Matrix4x4 temp = Utility.ScaleMatrixByFloat(rs * rs.transpose, mass);
+                I = Utility.AddMatrices(I, temp);
+            }
+
+            // w = I_inverse * L
+            I[3, 3] = 1;
+            Matrix4x4 I_inv = I.inverse;
+            Vector3 w = I_inv * L;
+
+            // apply w back into velocities
+            for (int i = 0; i < numParticles; i++) {
+                Vector3 r = positions[i] - centerMassPosition;
+                Vector3 dv = centerMassVelocity + Vector3.Cross(w, r) - velocities[i];
+                velocities[i] += dampingStiffness * dv;
+            }
         }
     }
 
@@ -250,23 +310,23 @@ public class ClothSimulator : MonoBehaviour {
 
         // satisfy normal constraints first
         for (int i = 0; i < constraints.Count; i++) {
-            constraints[i].Satisfy(projectedPositions, positions, invMass);
+            constraints[i].Satisfy(projectedPositions, invMass);
         }
 
         // then satisfy collision constraints
         for (int i = 0; i < collisionConstraints.Count; i++) {
-            collisionConstraints[i].Satisfy(projectedPositions, positions, invMass);
+            collisionConstraints[i].Satisfy(projectedPositions, invMass);
         }
 
-        // finally, satisfy ground constraints
-        //if (groundConstraint != nullptr) {
-        //    groundConstraint->satisfy(projectedPositions, velocities, masses);
-        //}
+        //finally, satisfy ground constraints
+        if (ground != null) {
+            ground.Satisfy(projectedPositions, velocities);
+        }
     }
 
     public void SatisfyPointConstraints(float dt) {
         for (int i = 0; i < pointConstraints.Count; i++) {
-            pointConstraints[i].Satisfy(projectedPositions, positions, invMass);
+            pointConstraints[i].Satisfy(projectedPositions, positions);
         }
     }
 

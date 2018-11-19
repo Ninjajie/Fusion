@@ -4,7 +4,7 @@ using UnityEngine;
 
 public abstract class Constraint {
 
-    public abstract void Satisfy(Vector3[] projectedPositions, Vector3[] positions, float mass);
+    public abstract void Satisfy(Vector3[] projectedPositions, float mass);
 }
 
 public class DistanceConstraint : Constraint {
@@ -18,7 +18,7 @@ public class DistanceConstraint : Constraint {
         weight = w;
     }
 
-    public override void Satisfy(Vector3[] projectedPositions, Vector3[] positions, float mass) {
+    public override void Satisfy(Vector3[] projectedPositions, float mass) {
         //get positions
         Vector3 pi = projectedPositions[edge.startIndex];
         Vector3 pj = projectedPositions[edge.endIndex];
@@ -61,7 +61,7 @@ public class BendingConstraint : Constraint {
         weight = w;
     }
 
-    public override void Satisfy(Vector3[] projectedPositions, Vector3[] positions, float mass) {
+    public override void Satisfy(Vector3[] projectedPositions, float mass) {
         /* this is indexed like the Bridson, Simulation of Clothing with Folds
      *     and Wrinkles paper
      *    3
@@ -129,15 +129,32 @@ public class BendingConstraint : Constraint {
     }
 }
 
-public class PointConstraint : Constraint {
+public class PointConstraint {
     private int index;
 
     public PointConstraint(int i) {
         index = i;
     }
 
-    public override void Satisfy(Vector3[] projectedPositions, Vector3[] positions, float mass) {
+    public void Satisfy(Vector3[] projectedPositions, Vector3[] positions) {
         projectedPositions[index] = positions[index];
         // TODO: handle the case of a moving point constraint e.g. curtain
+    }
+}
+
+public class GroundConstraint {
+    private float groundPlane;
+
+    public GroundConstraint(float g) {
+        groundPlane = g;
+    }
+
+    public void Satisfy(Vector3[] projectedPositions, Vector3[] velocities) {
+        for (int i = 0; i < projectedPositions.Length; i++) {
+            if (projectedPositions[i][1] < groundPlane) {
+                projectedPositions[i][1] = groundPlane;
+                velocities[i] = Vector3.zero;
+            }
+        }
     }
 }

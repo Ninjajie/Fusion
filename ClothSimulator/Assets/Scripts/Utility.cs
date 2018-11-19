@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 public static class Utility {
 
@@ -14,5 +15,21 @@ public static class Utility {
             list[k] = list[n];
             list[n] = value;
         }
+    }
+
+    public static Matrix4x4 ScaleMatrixByFloat(Matrix4x4 m, float f) {
+        Matrix4x4 result = Matrix4x4.zero;
+        for (int i = 0; i < 16; i++) {
+            result[i] = m[i] * f;
+        }
+        return result;
+    }
+
+    public static Matrix4x4 AddMatrices(Matrix4x4 lhs, Matrix4x4 rhs) {
+        Matrix4x4 result = Matrix4x4.zero;
+        for (int i = 0; i < 16; i++) {
+            result[i] = lhs[i] + rhs[i];
+        }
+        return result;
     }
 }
