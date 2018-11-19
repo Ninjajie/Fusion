@@ -1,7 +1,9 @@
 TODO for CPU version of PBD
-- reread the PBD paper to understand how it works
-- figure out how Unity winds its vertices
 - import the PBD class structure into Unity
+    - import Eigen into C#
+    - bending constraint
+    - collision constraint (just ground for now)
+    - simple collision constraint with sphere
 - look into the official PBD implementation to steal some designs
 
 TODO for usability

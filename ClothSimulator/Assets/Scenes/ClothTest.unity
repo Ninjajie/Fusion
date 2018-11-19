@@ -232,7 +232,7 @@ MonoBehaviour:
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 10
   columns: 10
-  distanceWeight: 0.8
+  distanceWeight: 1
   bendingWeight: 0.5
   dampingStiffness: 0.02
   pointConstraintIndices: 6e00000078000000
@@ -309,7 +309,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1326018001}
   m_LocalRotation: {x: -0.04266366, y: 0.95141584, z: -0.1543284, w: -0.26300302}
-  m_LocalPosition: {x: 8.5156975, y: 5.524173, z: 14.225807}
+  m_LocalPosition: {x: 9.17, y: 1.71, z: 15.32}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

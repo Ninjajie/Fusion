@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -84,7 +83,102 @@ public class ClothSimulator : MonoBehaviour {
             }
         }
         if (useBendingConstraint) {
-            // TODO: implement this
+            Dictionary<Edge, List<Triangle>> wingEdges = new Dictionary<Edge, List<Triangle>>(new EdgeComparer());
+
+            // map edges to all of the faces to which they are connected
+            // TODO: check later if we're double adding things here. maybe we should sort vertices afterall
+            foreach (Triangle tri in triangles) {
+                Edge e1 = new Edge(tri.vertices[0], tri.vertices[1]);
+                if (wingEdges.ContainsKey(e1)) {
+                    wingEdges[e1].Add(tri);
+                }
+                else {
+                    List<Triangle> tris = new List<Triangle>();
+                    tris.Add(tri);
+                    wingEdges.Add(e1, tris);
+                }
+
+                Edge e2 = new Edge(tri.vertices[0], tri.vertices[2]);
+                if (wingEdges.ContainsKey(e2)) {
+                    wingEdges[e2].Add(tri);
+                }
+                else {
+                    List<Triangle> tris = new List<Triangle>();
+                    tris.Add(tri);
+                    wingEdges.Add(e2, tris);
+                }
+
+                Edge e3 = new Edge(tri.vertices[1], tri.vertices[2]);
+                if (wingEdges.ContainsKey(e3)) {
+                    wingEdges[e3].Add(tri);
+                }
+                else {
+                    List<Triangle> tris = new List<Triangle>();
+                    tris.Add(tri);
+                    wingEdges.Add(e3, tris);
+                }
+            }
+
+            // wingEdges are edges with 2 occurences,
+            // so we need to remove the lower frequency ones
+            List<Edge> keyList = wingEdges.Keys.ToList();
+            foreach (Edge e in keyList) {
+                if (wingEdges[e].Count < 2) {
+                    wingEdges.Remove(e);
+                }
+            }
+
+            foreach (Edge wingEdge in wingEdges.Keys){
+                /* wingEdges are indexed like in the Bridson,
+                 * Simulation of Clothing with Folds and Wrinkles paper
+                 *    3
+                 *    ^
+                 * 0  |  1
+                 *    2
+                 */
+                
+                int[] indices = new int[4];
+
+                Vector3 p0 = Vector3.zero;
+                Vector3 p1 = Vector3.zero;
+                Vector3 p2 = positions[wingEdge.startIndex]; // TODO: does the way the edge is wound matter?
+                Vector3 p3 = positions[wingEdge.endIndex];
+
+                indices[2] = wingEdge.startIndex;
+                indices[3] = wingEdge.endIndex;
+
+                // TODO: this code could be prettier
+                int b = 0;
+                foreach (Triangle tri in wingEdges[wingEdge]) {
+                    for (int i = 0; i < 3; i++) {
+                        int point = tri.vertices[i];
+                        if (point != indices[3] && point != indices[2]) {
+                            //tri #1
+                            if (b == 0) {
+                                indices[0] = point;
+                                p0 = positions[point];
+                                break;
+                            }
+                            //tri #2
+                            else if (b == 1) {
+                                indices[1] = point;
+                                p1 = positions[point];
+                                break;
+                            }
+                        }
+                    }
+                    b++;
+                }
+
+                Vector3 n1 = (Vector3.Cross(p2 - p0, p3 - p0)).normalized;
+                Vector3 n2 = (Vector3.Cross(p3 - p1, p2 - p1)).normalized;
+
+                float d = Vector3.Dot(n1, n2);
+                d = Mathf.Clamp(d, -1.0f, 1.0f);
+                float restAngle = Mathf.Acos(d);
+
+                constraints.Add(new BendingConstraint(indices, restAngle, bendingWeight));
+            }
         }
     }
 
@@ -221,8 +315,8 @@ public class Edge {
     public int endIndex;
 
     public Edge(int start, int end) {
-        startIndex = start;
-        endIndex = end;
+        startIndex = Mathf.Min(start, end);
+        endIndex = Mathf.Max(start, end);
     }
 }
 
@@ -232,8 +326,7 @@ public class EdgeComparer: EqualityComparer<Edge> {
     }
 
     public override bool Equals(Edge x, Edge y) {
-        return (x.startIndex == y.startIndex && x.endIndex == y.endIndex)
-            || (x.endIndex == y.startIndex && x.startIndex == y.endIndex);
+        return x.startIndex == y.startIndex && x.endIndex == y.endIndex;
     }
 }
 

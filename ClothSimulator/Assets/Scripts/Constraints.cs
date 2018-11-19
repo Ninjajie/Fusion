@@ -70,67 +70,64 @@ public class BendingConstraint : Constraint {
      *    2 
      */
 
-        //Eigen::Matrix < T, 3, 4 > p;
+        Vector3 p0 = projectedPositions[vertexIndeces[0]];
+        Vector3 p1 = projectedPositions[vertexIndeces[1]];
+        Vector3 p2 = projectedPositions[vertexIndeces[2]];
+        Vector3 p3 = projectedPositions[vertexIndeces[3]];
 
-        //p.col(0) = projectedPositions[vertexIndeces[0]];
-        //p.col(1) = projectedPositions[vertexIndeces[1]];
-        //p.col(2) = projectedPositions[vertexIndeces[2]];
-        //p.col(3) = projectedPositions[vertexIndeces[3]];
+        Vector3 wing = p3 - p2;
+        float wingLength = wing.magnitude;
 
-        //vec3<T> wing = p.col(3) - p.col(2);
-        //auto wingLength = wing.norm();
+        if (wingLength >= 1e-7) {
+            //get normals
+            Vector3 n1 = Vector3.Cross(p2 - p0, p3 - p0);
+            n1 /= n1.sqrMagnitude;
 
-        //if (wingLength >= std::numeric_limits < T >::epsilon()) {
-        //    //get normals
-        //    auto n1 = (p.col(2) - p.col(0)).cross(p.col(3) - p.col(0));
-        //    n1 /= n1.squaredNorm();
+            Vector3 n2 = Vector3.Cross(p3 - p1, p2 - p1);
+            n2 /= n2.sqrMagnitude;
+            //unlike in the original PBD paper,
+            // both normals point in same direction
 
-        //    auto n2 = (p.col(3) - p.col(1)).cross(p.col(2) - p.col(1));
-        //    n2 /= n2.squaredNorm();
-        //    //unlike in the original PBD paper,
-        //    // both normals point in same direction
+            //getting constraints along gradients (gradpC)
+            float invWingLength = 1.0f / wingLength;
 
-        //    //getting constraints along gradients (gradpC)
-        //    auto invWingLength = 1.0 / wingLength;
+            Vector3 q0 = wingLength * n1;
+            Vector3 q1 = wingLength * n2;
+            Vector3 q2 = Vector3.Dot(p0 - p3, wing) * invWingLength * n1
+                        + Vector3.Dot(p1 - p3, wing) * invWingLength * n2;
+            Vector3 q3 = Vector3.Dot(p2 - p0, wing) * invWingLength * n1
+                        + Vector3.Dot(p2 - p1, wing) * invWingLength * n2;
 
-        //    Eigen::Matrix < T, 3, 4 > q;
-        //    q.col(0) = wingLength * n1;
+            //find current angle
+            n1.Normalize();
+            n2.Normalize();
 
-        //    q.col(1) = wingLength * n2;
+            float d = Vector3.Dot(n1, n2);
+            d = Mathf.Clamp(d, -1.0f, 1.0f);
+            float currentAngle = Mathf.Acos(d);
 
-        //    q.col(2) = (p.col(0) - p.col(3)).dot(wing) * invWingLength * n1
-        //                + (p.col(1) - p.col(3)).dot(wing) * invWingLength * n2;
+            //find lamda ( where deltap = lamda*wi*gradConstraint )
+            float lamda = 0;
+            lamda += mass * q0.sqrMagnitude;
+            lamda += mass * q1.sqrMagnitude;
+            lamda += mass * q2.sqrMagnitude;
+            lamda += mass * q3.sqrMagnitude;
 
-        //    q.col(3) = (p.col(2) - p.col(0)).dot(wing) * invWingLength * n1
-        //                + (p.col(2) - p.col(1)).dot(wing) * invWingLength * n2;
+            if (lamda != 0.0f) {
+                lamda = (currentAngle - restAngle) / lamda * weight;
 
-        //    //find current angle
-        //    n1.normalize();
-        //    n2.normalize();
+                if (Vector3.Dot(Vector3.Cross(n1, n2), wing) > 0.0) {
+                    lamda = -lamda;
+                }
 
-        //    auto d = n1.dot(n2);
-        //    if (d < -1.0) d = -1.0;
-        //    if (d > 1.0) d = 1.0;
-        //    auto currentAngle = acos(d);
-
-        //    //find lamda ( where deltap = lamda*wi*gradConstraint )
-        //    auto lamda = 0;
-        //    for (int i = 0; i < 4; i++) {
-        //        lamda += (masses[vertexIndeces[i]]) * q.col(i).squaredNorm();
-        //    }
-
-        //    if (lamda != 0.0) {
-        //        lamda = (currentAngle - restAngle) / lamda * weight;
-
-        //        if (n1.cross(n2).dot(wing) > 0.0) lamda = -lamda;
-
-        //        for (int i = 0; i < 4; i++) {
-        //            projectedPositions[vertexIndeces[i]]
-        //                -= (masses[vertexIndeces[i]]) * lamda * q.col(i);
-        //        }
-        //    }
-        //}
+                projectedPositions[vertexIndeces[0]] -= mass * lamda * q0;
+                projectedPositions[vertexIndeces[1]] -= mass * lamda * q1;
+                projectedPositions[vertexIndeces[2]] -= mass * lamda * q2;
+                projectedPositions[vertexIndeces[3]] -= mass * lamda * q3;
+            }
+        }
     }
+}
 
 public class PointConstraint : Constraint {
     private int index;
