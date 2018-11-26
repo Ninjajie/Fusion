@@ -16,6 +16,7 @@ public class ClothSimulator : MonoBehaviour {
     public float distanceCompressionStiffness = 0.8f;
     public float distanceStretchStiffness = 0.8f;
     public float bendingStiffness = 0.1f;
+    public DampingMethod dampingMethod;
     public float dampingStiffness = 0.02f;
 
     // constraint data
@@ -23,8 +24,7 @@ public class ClothSimulator : MonoBehaviour {
     public float groundPlane;
     public bool useGroundConstraint;
     public bool useDistanceConstraint;
-    public bool useBendingConstraint;
-    public bool useIsometricBendingConstraint;
+    public BendingMethod bendingMethod;
 
     // simulation data
     private Vector3[] positions; 
@@ -42,9 +42,7 @@ public class ClothSimulator : MonoBehaviour {
     Mesh mesh;
 
     // collision stuff TODO: hacky solution
-    public Vector3 sphereCenter;
-    public float sphereRadius;
-    public bool useSphereCollision;
+    public LayerMask collisionLayers;
 
     // Use this for initialization
     void Start () {
@@ -89,7 +87,7 @@ public class ClothSimulator : MonoBehaviour {
                 constraints.Add(new DistanceConstraint(e, positions, distanceCompressionStiffness, distanceStretchStiffness));
             }
         }
-        if (useBendingConstraint) {
+        if (bendingMethod != BendingMethod.noBending) {
             Dictionary<Edge, List<Triangle>> wingEdges = new Dictionary<Edge, List<Triangle>>(new EdgeComparer());
 
             // map edges to all of the faces to which they are connected
@@ -169,7 +167,7 @@ public class ClothSimulator : MonoBehaviour {
                     b++;
                 }
 
-                if (useIsometricBendingConstraint) {
+                if (bendingMethod == BendingMethod.isometricBending) {
                     constraints.Add(new IsometricBendingConstraint(indices, positions, bendingStiffness));
 
                 }
@@ -191,16 +189,16 @@ public class ClothSimulator : MonoBehaviour {
         ApplyExternalForce(gravity, dt);
 
         // step 6: damp velocity
-        DampVelocity(dampingStiffness);
+        if (dampingMethod != DampingMethod.noDamping) {
+            DampVelocity(dampingStiffness, dampingMethod);
+        }
 
         // step 7: apply explicit Euler to positions based on velocity
         ApplyExplicitEuler(dt);
 
         // step 8: TODO: clear current collisions and generate new collisions
         ClearCollisionConstraints();
-        if (useSphereCollision) {
-            GenerateCollisionConstraints(sphereCenter, sphereRadius);
-        }
+        GenerateCollisionConstraints();    
 
         // step 9-11: project constraints iterationNum times
         for (int j = 0; j < iterationNum; j++) {
@@ -230,9 +228,9 @@ public class ClothSimulator : MonoBehaviour {
         }
     }
 
-    public void DampVelocity(float dampingStiffness) {
+    public void DampVelocity(float dampingStiffness, DampingMethod method) {
         // TODO: there's a smarter way of doing this
-        if (!useSmartDamping) {
+        if (method == DampingMethod.simpleDamping) { 
             for (int i = 0; i < numParticles; i++) {
                 velocities[i] *= 0.998f;
             }
@@ -294,11 +292,13 @@ public class ClothSimulator : MonoBehaviour {
         collisionConstraints.Clear();
     }
 
-    public void GenerateCollisionConstraints(Vector3 center, float radius) {
+    public void GenerateCollisionConstraints() {
         for (int i = 0; i < numParticles; i++) {
-            if ((projectedPositions[i] - center).magnitude <= radius) {
-                collisionConstraints.Add(new CollisionConstraint(i, positions[i],
-                                                   projectedPositions[i], sphereCenter, sphereRadius));
+            RaycastHit info;
+            
+            if (Physics.Linecast(positions[i], projectedPositions[i], out info, collisionLayers)) {
+                print("hit");
+                collisionConstraints.Add(new CollisionConstraint(i, info, positions[i]));
             }
         }
     }
@@ -396,3 +396,5 @@ public class EdgeComparer: EqualityComparer<Edge> {
     }
 }
 
+public enum DampingMethod { noDamping, simpleDamping, smartDamping }
+public enum BendingMethod { noBending, DihedralBending, isometricBending }
