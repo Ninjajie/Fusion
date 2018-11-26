@@ -235,14 +235,16 @@ MonoBehaviour:
   rows: 10
   columns: 10
   useSmartDamping: 1
-  distanceWeight: 0.8
-  bendingWeight: 0.2
+  distanceCompressionStiffness: 0.75
+  distanceStretchStiffness: 0.8
+  bendingStiffness: 0.01
   dampingStiffness: 0.01
   pointConstraintIndices: 6e00000078000000
   groundPlane: -2
   useGroundConstraint: 0
   useDistanceConstraint: 1
-  useBendingConstraint: 0
+  useBendingConstraint: 1
+  useIsometricBendingConstraint: 1
   sphereCenter: {x: 0, y: -5, z: -2}
   sphereRadius: 3
   useSphereCollision: 1

@@ -6,6 +6,12 @@ public static class Utility {
 
     private static System.Random rng = new System.Random();
 
+    public static float CotTheda(Vector3 v, Vector3 w) {
+        float cosTheda = Vector3.Dot(v, w);
+        float sinTheda = Vector3.Cross(v, w).magnitude;
+        return cosTheda / sinTheda;
+    }
+
     public static void Shuffle<T>(this IList<T> list) {
         int n = list.Count;
         while (n > 1) {
@@ -32,4 +38,5 @@ public static class Utility {
         }
         return result;
     }
+
 }

@@ -13,8 +13,9 @@ public class ClothSimulator : MonoBehaviour {
     public bool useSmartDamping;
 
     // constraint weights
-    public float distanceWeight = 0.8f;
-    public float bendingWeight = 0.5f;
+    public float distanceCompressionStiffness = 0.8f;
+    public float distanceStretchStiffness = 0.8f;
+    public float bendingStiffness = 0.1f;
     public float dampingStiffness = 0.02f;
 
     // constraint data
@@ -23,6 +24,7 @@ public class ClothSimulator : MonoBehaviour {
     public bool useGroundConstraint;
     public bool useDistanceConstraint;
     public bool useBendingConstraint;
+    public bool useIsometricBendingConstraint;
 
     // simulation data
     private Vector3[] positions; 
@@ -84,11 +86,7 @@ public class ClothSimulator : MonoBehaviour {
             };
 
             foreach(Edge e in edgeSet) {
-                Vector3 startPos = positions[e.startIndex];
-                Vector3 endPos = positions[e.endIndex];
-                float restLength = (startPos - endPos).magnitude;
-
-                constraints.Add(new DistanceConstraint(e, restLength, distanceWeight));
+                constraints.Add(new DistanceConstraint(e, positions, distanceCompressionStiffness, distanceStretchStiffness));
             }
         }
         if (useBendingConstraint) {
@@ -98,7 +96,7 @@ public class ClothSimulator : MonoBehaviour {
             // TODO: check later if we're double adding things here. maybe we should sort vertices afterall
             foreach (Triangle tri in triangles) {
                 Edge e1 = new Edge(tri.vertices[0], tri.vertices[1]);
-                if (wingEdges.ContainsKey(e1)) {
+                if (wingEdges.ContainsKey(e1) && !wingEdges[e1].Contains(tri)) {
                     wingEdges[e1].Add(tri);
                 }
                 else {
@@ -108,7 +106,7 @@ public class ClothSimulator : MonoBehaviour {
                 }
 
                 Edge e2 = new Edge(tri.vertices[0], tri.vertices[2]);
-                if (wingEdges.ContainsKey(e2)) {
+                if (wingEdges.ContainsKey(e2) && !wingEdges[e2].Contains(tri)) {
                     wingEdges[e2].Add(tri);
                 }
                 else {
@@ -118,7 +116,7 @@ public class ClothSimulator : MonoBehaviour {
                 }
 
                 Edge e3 = new Edge(tri.vertices[1], tri.vertices[2]);
-                if (wingEdges.ContainsKey(e3)) {
+                if (wingEdges.ContainsKey(e3) && !wingEdges[e3].Contains(tri)) {
                     wingEdges[e3].Add(tri);
                 }
                 else {
@@ -147,12 +145,6 @@ public class ClothSimulator : MonoBehaviour {
                  */
                 
                 int[] indices = new int[4];
-
-                Vector3 p0 = Vector3.zero;
-                Vector3 p1 = Vector3.zero;
-                Vector3 p2 = positions[wingEdge.startIndex]; // TODO: does the way the edge is wound matter?
-                Vector3 p3 = positions[wingEdge.endIndex];
-
                 indices[2] = wingEdge.startIndex;
                 indices[3] = wingEdge.endIndex;
 
@@ -161,17 +153,15 @@ public class ClothSimulator : MonoBehaviour {
                 foreach (Triangle tri in wingEdges[wingEdge]) {
                     for (int i = 0; i < 3; i++) {
                         int point = tri.vertices[i];
-                        if (point != indices[3] && point != indices[2]) {
+                        if (point != indices[2] && point != indices[3]) {
                             //tri #1
                             if (b == 0) {
                                 indices[0] = point;
-                                p0 = positions[point];
                                 break;
                             }
                             //tri #2
                             else if (b == 1) {
                                 indices[1] = point;
-                                p1 = positions[point];
                                 break;
                             }
                         }
@@ -179,14 +169,13 @@ public class ClothSimulator : MonoBehaviour {
                     b++;
                 }
 
-                Vector3 n1 = (Vector3.Cross(p2 - p0, p3 - p0)).normalized;
-                Vector3 n2 = (Vector3.Cross(p3 - p1, p2 - p1)).normalized;
+                if (useIsometricBendingConstraint) {
+                    constraints.Add(new IsometricBendingConstraint(indices, positions, bendingStiffness));
 
-                float d = Vector3.Dot(n1, n2);
-                d = Mathf.Clamp(d, -1.0f, 1.0f);
-                float restAngle = Mathf.Acos(d);
-
-                constraints.Add(new BendingConstraint(indices, restAngle, bendingWeight));
+                }
+                else {
+                    constraints.Add(new BendingConstraint(indices, positions, bendingStiffness));
+                }
             }
         }
         if (useGroundConstraint) {
