@@ -275,6 +275,78 @@ public class SphereCollisionConstraint : Constraint {
     
 }
 
+public class CubeCollisionConstraint : Constraint {
+    private int vertexIndex;
+    private Vector3 cubeExtent;
+    private Transform cubeTransform;
+    private Vector3 collisionPosition;
+    private Vector3 collisionNormal;
+
+    public CubeCollisionConstraint(int index, Vector3 localPosition, Vector3 localProjectedPosition, Vector3 extent, Transform transform) {
+        vertexIndex = index;
+        cubeExtent = extent;
+        cubeTransform = transform;
+
+        int intersectionAxis = 0;
+        for (int i = 0; i < 3; i++) {
+            if (Mathf.Abs(localPosition[i]) > extent[i] && Mathf.Abs(localProjectedPosition[i]) <= extent[i]){
+                intersectionAxis = i;
+                break;
+            }
+        }
+
+        float[] pos = new float[3];
+        float[] norm = new float[3];
+        for (int i = 0; i < 3; i++) {
+            if (i == intersectionAxis) {
+                norm[i] = Mathf.Sign(localPosition[i] - localProjectedPosition[i]);
+                pos[i] = extent[i] * norm[i];
+            }
+            else {
+                norm[i] = 0;
+                pos[i] = 0.5f * (localPosition[i] + localProjectedPosition[i]);
+            }
+        }
+
+        collisionPosition = new Vector3(pos[0], pos[1], pos[2]);
+        collisionPosition = cubeTransform.TransformPoint(collisionPosition);
+
+        collisionNormal = new Vector3(norm[0], norm[1], norm[2]);
+        collisionNormal = cubeTransform.TransformDirection(collisionNormal);
+    }
+
+    public override void Satisfy(Vector3[] projectedPositions, float mass) {
+        Vector3 localPosition = cubeTransform.InverseTransformPoint(projectedPositions[vertexIndex]);
+
+        if (Utility.IsPointInCube(localPosition, cubeExtent)) { // if constraint violated, project the constraint
+            int closestAxis = 0;
+            float closestDist = float.MaxValue;
+            for (int i = 0; i < 3; i++) {
+                float dist = Mathf.Abs(localPosition[i] - cubeExtent[i]);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestAxis = i;
+                }
+            }
+
+            float[] newPos = new float[3];
+            for (int i = 0; i < 3; i++) {
+                if (i == closestAxis) {
+                    newPos[i] = (cubeExtent[i] + 0.001f) * Mathf.Sign(localPosition[i]);
+                }
+                else {
+                    newPos[i] = localPosition[i];
+                }
+            }
+
+            Vector3 closestPos = new Vector3(newPos[0], newPos[1], newPos[2]);
+            closestPos = cubeTransform.TransformPoint(closestPos);
+            projectedPositions[vertexIndex] = closestPos;
+        }
+    }
+
+}
+
 public class PointConstraint {
     private int index;
 

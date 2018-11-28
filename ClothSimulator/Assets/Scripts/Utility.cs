@@ -39,4 +39,8 @@ public static class Utility {
         return result;
     }
 
+    public static bool IsPointInCube(Vector3 point, Vector3 extent) {
+        return Mathf.Abs(point.x) < extent.x && Mathf.Abs(point.y) < extent.y && Mathf.Abs(point.z) < extent.z;
+    }
+
 }

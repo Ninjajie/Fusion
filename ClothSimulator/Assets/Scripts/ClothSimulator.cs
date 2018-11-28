@@ -298,14 +298,19 @@ public class ClothSimulator : MonoBehaviour {
         for (int i = 0; i < numParticles; i++) {
             for (int j = 0; j < colliders.Length; j++) {
                 if (colliders[j].GetType() == typeof(SphereCollider)) {
-                    Vector3 center = colliders[j].GetComponent<SphereCollider>().center + colliders[j].gameObject.transform.position;
-                    float radius = colliders[j].GetComponent<SphereCollider>().radius * colliders[j].gameObject.transform.lossyScale.x;
+                    Vector3 center = colliders[j].GetComponent<SphereCollider>().center + colliders[j].transform.position;
+                    float radius = colliders[j].GetComponent<SphereCollider>().radius * colliders[j].transform.lossyScale.x;
                     if ((projectedPositions[i] - center).magnitude < radius) {
                         collisionConstraints.Add(new SphereCollisionConstraint(i, center, radius, positions[i], projectedPositions[i]));
                     }
                 }
                 else if (colliders[j].GetType() == typeof(BoxCollider)) {
-                    // TODO
+                    Vector3 extent = 0.5f * colliders[j].GetComponent<BoxCollider>().size;
+                    Vector3 localPosition = colliders[j].transform.InverseTransformPoint(positions[i]);
+                    Vector3 localProjectedPosition = colliders[j].transform.InverseTransformPoint(projectedPositions[i]);
+                    if (Utility.IsPointInCube(localProjectedPosition, extent)) {
+                        collisionConstraints.Add(new CubeCollisionConstraint(i, localPosition, localProjectedPosition, extent, colliders[j].transform));
+                    }
                 }
                 else if (colliders[j].GetType() == typeof(CapsuleCollider)) {
                     // TODO
