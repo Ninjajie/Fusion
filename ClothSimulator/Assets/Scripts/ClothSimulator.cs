@@ -40,18 +40,33 @@ public class ClothSimulator : MonoBehaviour {
 
     // unity data
     Mesh mesh;
+    Mesh reverseMesh;
 
     // collision stuff TODO: hacky solution
     public LayerMask collisionLayers;
 
     // Use this for initialization
     void Start () {
-        mesh = GetComponent<MeshFilter>().mesh;
+        mesh = transform.GetChild(0).GetComponent<MeshFilter>().mesh;
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
         positions = new Vector3[numParticles];
         projectedPositions = new Vector3[numParticles];
         velocities = new Vector3[numParticles];
+
+        // make new mesh for the opposite side
+        GameObject newCloth = Instantiate(transform.GetChild(0).gameObject, transform);
+        newCloth.name = "Back";
+        reverseMesh = transform.GetChild(1).GetComponent<MeshFilter>().mesh;
+        for (int m = 0; m < reverseMesh.subMeshCount; m++) {
+            int[] triangles = reverseMesh.GetTriangles(m);
+            for (int i = 0; i < triangles.Length; i += 3) {
+                int temp = triangles[i + 0];
+                triangles[i + 0] = triangles[i + 1];
+                triangles[i + 1] = temp;
+            }
+            reverseMesh.SetTriangles(triangles, m);
+        }
 
         // step 1-3: initialize position, velocity and weight
         for (int i = 0; i < numParticles; i++) {
@@ -219,7 +234,15 @@ public class ClothSimulator : MonoBehaviour {
         mesh.vertices = positions;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
-        GetComponent<MeshCollider>().sharedMesh = mesh;
+        reverseMesh.vertices = positions;
+        Vector3[] reverseNormals = mesh.normals;
+        for (int i = 0; i < reverseNormals.Length; i++) {
+            reverseNormals[i] *= -1;
+        }
+        reverseMesh.normals = reverseNormals;
+
+        transform.GetChild(0).GetComponent<MeshCollider>().sharedMesh = mesh;
+        transform.GetChild(1).GetComponent<MeshCollider>().sharedMesh = reverseMesh;
     }
 
     public void ApplyExternalForce(Vector3 gravity, float dt) {
