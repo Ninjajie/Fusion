@@ -1,14 +1,30 @@
-﻿// Each #kernel tells which function to compile; you can have many kernels
-#pragma kernel CSMain
+﻿
+
+
+// data structure of Particles/Vertices
+struct PointElement {
+	// TODO: change the Point Element structure when needed
+	float3 worldPosition;
+	float3 worldVelocity;
+	float invMass;
+};
+
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float4> Result;
 
-[numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
+//RWTexture2D<float4> Result;
+
+RWStructuredBuffer<PointElement> pointElements;
+StructuredBuffer<PointElement> pointElements_Old;
+
+int numVertices;
+float deltaTime;
+
+#pragma kernel UpdatePosVel
+[numthreads(8, 1, 1)]
+void UpdatePosVel(uint3 id : SV_DispatchThreadID)
 {
-	// TODO: insert actual code here!
-
-	Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+	if (id.x >= numVertices)return;
+	pointElements[id.x].worldVelocity = (pointElements[id.x].worldPosition - pointElements_Old[id.x].worldPosition) / deltaTime;
 }

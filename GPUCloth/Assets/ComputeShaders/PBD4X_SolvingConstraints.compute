@@ -37,6 +37,7 @@ struct DistanceConstraintStruct
 
 StructuredBuffer<DistanceConstraintStruct> distanceConstraintData;
 RWStructuredBuffer<PointElement> pointElements;
+RWStructuredBuffer<PointElement> pointElements_Old;
 RWStructuredBuffer<DeltaPos> deltaPos;
 RWStructuredBuffer<uint3> deltaPosASInt;
 RWStructuredBuffer<int> deltaCount;
@@ -44,6 +45,9 @@ RWStructuredBuffer<int> deltaCount;
 int numVertices;
 int numEdges;
 int numIterations;
+
+float radius;
+float3 center;
 
 // atomic add functions for delta X
 void AtomicAddDeltaX(int indexIntoDeltaPos, float newDeltaValX)
@@ -81,7 +85,7 @@ void AtomicAddDeltaY(int indexIntoDeltaPos, float newDeltaValY)
 	uint tmp1;
 
 	[allow_uav_condition]while (true) {
-		InterlockedCompareExchange(deltaPosASInt[indexIntoDeltaPos].y),  tmp0, i_val, tmp1);
+		InterlockedCompareExchange(deltaPosASInt[indexIntoDeltaPos].y,  tmp0, i_val, tmp1);
 
 		if (tmp1 == tmp0)
 			break;
@@ -127,54 +131,93 @@ void AtomicAddDeltaZ(int indexIntoDeltaPos, float newDeltaValZ)
 [numthreads(8, 1, 1)]
 void CalculateDeltas(uint3 id : SV_DispatchThreadID)
 {
-	if (id.x >= numEdges) return;
-	// read current distance constraint
-	DistanceConstraintStruct d = distanceConstraintData[id.x];
-	// read the edge: start and end index
-	LineElement l = d.edge;
-	int startIndex = l.startIndex;
-	int endIndex = l.endIndex;
-	float restLength = d.restLength;
-	float weight = d.weight;
+	if (id.x >= numEdges + numVertices) return;
 
-	// atomic add the number of constraints to deltaCount buffer
-	InterlockedAdd(deltaCount[startIndex], 1);
-	InterlockedAdd(deltaCount[endIndex], 1);
+	if (id.x < numEdges) 
+	{
+		// read current distance constraint
+		DistanceConstraintStruct d = distanceConstraintData[id.x];
+		// read the edge: start and end index
+		LineElement l = d.edge;
+		int startIndex = l.startIndex;
+		int endIndex = l.endIndex;
+		float restLength = d.restLength;
+		float weight = d.weight;
 
-	// Calculate Deltas
-	// get positions
-	float3 pi = pointElements[startIndex].worldPosition;
-	float3 pj = pointElements[endIndex].worldPosition;
-	// make edge vector
-	float3 n = pi - pj;
-	// get current length
-	float L = length(n);
+		// atomic add the number of constraints to deltaCount buffer
+		InterlockedAdd(deltaCount[startIndex], 1);
+		InterlockedAdd(deltaCount[endIndex], 1);
 
-	// normalize edge vector
-	if (L >= 1e-7) {
-		n = normalize(n);
+		// Calculate Deltas
+		// get positions
+		float3 pi = pointElements[startIndex].worldPosition;
+		float3 pj = pointElements[endIndex].worldPosition;
+		// make edge vector
+		float3 n = pi - pj;
+		// get current length
+		float L = length(n);
+
+		// normalize edge vector
+		if (L >= 1e-7) {
+			n = normalize(n);
+		}
+		float wi = 1.0f;
+		float wj = 1.0f;
+
+		float3 deltaPosPI = -weight * wi / (wi + wj) * (L - restLength) * n; //Minus
+		float3 deltaPosPJ = weight * wj / (wi + wj) * (L - restLength) * n; //Plus
+
+		AtomicAddDeltaX(startIndex, deltaPosPI.x);
+		AtomicAddDeltaY(startIndex, deltaPosPI.y);
+		AtomicAddDeltaZ(startIndex, deltaPosPI.z);
+
+		AtomicAddDeltaX(endIndex, deltaPosPJ.x);
+		AtomicAddDeltaY(endIndex, deltaPosPJ.y);
+		AtomicAddDeltaZ(endIndex, deltaPosPJ.z);
+		return;
 	}
-	float wi = 1.0f;
-	float wj = 1.0f;
+	//else
+	//{
+	//	InterlockedAdd(deltaCount[id.x - numEdges], 1);
 
-	float3 deltaPosPI = -weight * wi/ (wi + wj) * (L - restLength) * n; //Minus
-	float3 deltaPosPJ = weight * wj/ (wi + wj) * (L - restLength) * n; //Plus
+	//	PointElement p = pointElements[id.x - numEdges];
+	//	PointElement p_old = pointElements_Old[id.x - numEdges];
+	//	float3 pos = p_old.worldPosition;
+	//	float3 projectedPos = p.worldPosition;
+	//	// get collision pos and normals
 
-	AtomicAddDeltaX(startIndex, deltaPosPI.x);
-	AtomicAddDeltaY(startIndex, deltaPosPI.y);
-	AtomicAddDeltaZ(startIndex, deltaPosPI.z);
+	//	float3 direction = normalize(projectedPos - pos);
+	//	// L is the distance from original point to the center
+	//	float L = length(center - pos);
+	//	// tc is the distance from original point to the center's
+	//	// projected point on the ray
+	//	float tc = dot(center - pos, direction);
+	//	// d is the closest distance from center to the ray
+	//	float d = sqrt(L * L - tc * tc);
+	//	// tc1 is the distance from the collision point to the center's
+	//	// projected point on the ray
+	//	float tc1 = sqrt(radius * radius - d * d);
+	//	// t is the distance from original position to the collision point
+	//	float t = tc - tc1;
 
-	AtomicAddDeltaX(endIndex, deltaPosPJ.x);
-	AtomicAddDeltaY(endIndex, deltaPosPJ.y);
-	AtomicAddDeltaZ(endIndex, deltaPosPJ.z);
+	//	float3 collisionPos = pos + direction * t;
+	//	float3 normal = normalize(collisionPos - center);
 
-	//InterlockedAdd(pointPositionsInt[startIndex].intPosX, (int)(F_TO_I *deltaPosPI[0]));
-	//InterlockedAdd(pointPositionsInt[startIndex].intPosY, (int)(F_TO_I *deltaPosPI[1]));
-	//InterlockedAdd(pointPositionsInt[startIndex].intPosZ, (int)(F_TO_I *deltaPosPI[2]));
+	//	float cp = dot(projectedPos - collisionPos, normal);
 
-	//InterlockedAdd(pointPositionsInt[endIndex].intPosX, (int)(F_TO_I *deltaPosPJ[0]));
-	//InterlockedAdd(pointPositionsInt[endIndex].intPosY, (int)(F_TO_I *deltaPosPJ[1]));
-	//InterlockedAdd(pointPositionsInt[endIndex].intPosZ, (int)(F_TO_I *deltaPosPJ[2]));
+	//	if (cp < 0) { // constraint violated. project the constraint
+	//				  // n is the normal of the closest point on the sphere's surface to p
+	//		float3 n = normalize(projectedPos - center);
+	//		// q is the closest point on the sphere's surface to p
+	//		float3 q = center + n * radius;
+
+	//		float3 delta = q - projectedPos;
+	//		AtomicAddDeltaX(id.x - numEdges, delta.x);
+	//		AtomicAddDeltaY(id.x - numEdges, delta.y);
+	//		AtomicAddDeltaZ(id.x - numEdges, delta.z);		
+	//	}
+	//}
+	
 }
 
 
@@ -184,23 +227,33 @@ void AveragingDeltas(uint3 id : SV_DispatchThreadID)
 {
 	if (id.x >= numVertices)return;
 	if (deltaCount[id.x] > 0) {
+		deltaPos[id.x].deltaX = asfloat(deltaPosASInt[id.x].x);
+		deltaPos[id.x].deltaY = asfloat(deltaPosASInt[id.x].y);
+		deltaPos[id.x].deltaZ = asfloat(deltaPosASInt[id.x].z);
+
 		deltaPos[id.x].deltaX /= deltaCount[id.x];
 		deltaPos[id.x].deltaY /= deltaCount[id.x];
 		deltaPos[id.x].deltaZ /= deltaCount[id.x];
 	}
-	pointElements[id.x].worldPosition.x += deltaPos[id.x].deltaX * 10.0f;
-	pointElements[id.x].worldPosition.y += deltaPos[id.x].deltaY * 10.0f;
-	pointElements[id.x].worldPosition.z += deltaPos[id.x].deltaZ * 10.0f;
+	pointElements[id.x].worldPosition.x += deltaPos[id.x].deltaX * 2.0f;
+	pointElements[id.x].worldPosition.y += deltaPos[id.x].deltaY * 2.0f;
+	pointElements[id.x].worldPosition.z += deltaPos[id.x].deltaZ * 2.0f;
 	
 	// reset deltaPos buffer to zero
 	deltaPos[id.x].deltaX = 0.0f;
 	deltaPos[id.x].deltaY = 0.0f;
 	deltaPos[id.x].deltaZ = 0.0f;
+
+	deltaPosASInt[id.x].x = 0;
+	deltaPosASInt[id.x].y = 0;
+	deltaPosASInt[id.x].z = 0;
+
+	deltaCount[id.x] = 0;
 }
 
-#pragma kernel CleanIntDeltas
-[numthreads(8,1,1)]
-void CleanIntDeltas(uint3 id: SV_DispatchThreadId) {
-	if (id.x >= numVertices)return;
-	deltaPosASInt[id.x] = { 0,0,0 };
-}
+//#pragma kernel CleanIntDeltas
+//[numthreads(8,1,1)]
+//void CleanIntDeltas(uint3 id: SV_DispatchThreadId) {
+//	if (id.x >= numVertices)return;
+//	deltaPosASInt[id.x] = { 0,0,0 };
+//}

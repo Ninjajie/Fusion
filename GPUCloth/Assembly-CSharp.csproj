@@ -10,7 +10,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace>
     </RootNamespace>
-    <ProjectGuid>{957409D5-7949-8157-03FF-833F5856BD73}</ProjectGuid>
+    <ProjectGuid>{4DAFD271-20B0-2014-1F7D-9697A0C032A5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -61,6 +61,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\MovingPlane.cs" />
     <Compile Include="Assets\Procedural Example\Scripts\CrumpleMesh.cs" />
     <Compile Include="Assets\Procedural Example\Scripts\ExtrudedMeshTrail.cs" />
     <Compile Include="Assets\Procedural Example\Scripts\FractalTexture.cs" />
@@ -106,10 +107,10 @@
     <None Include="Assets\Procedural Example\Resources\TextMesh Pro\Sprites\EmojiOne Attribution.txt" />
     <None Include="Assets\Procedural Example\Resources\TextMesh Pro\Resources\Shaders\TMP_SDF-Mobile.shader" />
     <Reference Include="UnityEditor.StandardEvents">
-      <HintPath>C:/Courses/Unity/Fusion-CPUPBD/Fusion-CPUPBD/ClothSimulator/Library/ScriptAssemblies/UnityEditor.StandardEvents.dll</HintPath>
+      <HintPath>C:/Courses/Unity/Fusion/GPUCloth/Library/ScriptAssemblies/UnityEditor.StandardEvents.dll</HintPath>
     </Reference>
     <Reference Include="Unity.PackageManagerUI.Editor">
-      <HintPath>C:/Courses/Unity/Fusion-CPUPBD/Fusion-CPUPBD/ClothSimulator/Library/ScriptAssemblies/Unity.PackageManagerUI.Editor.dll</HintPath>
+      <HintPath>C:/Courses/Unity/Fusion/GPUCloth/Library/ScriptAssemblies/Unity.PackageManagerUI.Editor.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AIModule">
       <HintPath>C:/Program Files/Unity/Editor/Data/Managed/UnityEngine/UnityEngine.AIModule.dll</HintPath>

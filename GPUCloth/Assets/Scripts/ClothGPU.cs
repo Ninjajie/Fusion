@@ -25,6 +25,13 @@ struct DeltaPos
     public float deltaZ;
 }
 
+struct DeltaPosUInt
+{
+    public uint deltaXInt;
+    public uint deltaYInt;
+    public uint deltaZInt;
+}
+
 struct LineElement
 {
     public int startIndex;
@@ -51,7 +58,8 @@ public class ClothGPU : MonoBehaviour
     // test cast variable
     public float speed;
     // index of fixed vertex
-    public int pointConstraintIndex;
+    public int pointConstraintIndex1 = 110;
+    public int pointConstraintIndex2 = 120;
 
     // compute shaders
     public ComputeShader applyExtForce;
@@ -66,6 +74,7 @@ public class ClothGPU : MonoBehaviour
     ComputeBuffer distanceConstraintsBuffer;
     ComputeBuffer DeltaPosBuffer;
     ComputeBuffer DeltaCounterBuffer;
+    ComputeBuffer DeltaPosIntBuffer;
 
     // kernel IDs
     int PBD_ExtForceKernelID;
@@ -82,10 +91,13 @@ public class ClothGPU : MonoBehaviour
     int _size_DistanceConstraint = 16;
     // size of DeltaPos struct
     int _size_DeltaPos = 12;
+    // size of DeltaPosInt struct
+    int _size_DeltaPosInt = 12;
 
     // num of work groups
     int numGroups_Vertices;
     int numGroups_Edges;
+    int numGroups_VE;
     // size of a group
     int _size_WorkGroup = 8;
 
@@ -100,7 +112,16 @@ public class ClothGPU : MonoBehaviour
     public int iterationNum = 10;
 
     // constraint weights
-    public float distanceWeight = 0.8f;
+    public float distanceWeight = 1.2f;
+
+    // collision sphere
+    public float[] center;
+    public float radius = 1.0f;
+    // collision plane
+    float yPlane = 0.0f;
+    public Transform planeTransform;
+    // moving the cloth
+    float[] clothTranslate;
 
     //******Compute buffer data arrays*************//
     // the array that stores data of all point elements
@@ -113,6 +134,8 @@ public class ClothGPU : MonoBehaviour
     DeltaPos[] deltaPosArray;
     // The array to initialize delta count buffer
     int[] deltaCounterArray;
+    // The array to initialize deltaposInt buffer
+    DeltaPosUInt[] deltaPosUintArray;
     //******Compute buffer data arrays end*********//
 
     // Use this for initialization
@@ -122,6 +145,19 @@ public class ClothGPU : MonoBehaviour
         mesh.MarkDynamic();
         baseVertices = mesh.vertices;
 
+        //initialize sphere
+        center = new float[3];
+        center[0] = 0.0f;
+        center[1] = -4.0f;
+        center[2] = 0.0f;
+        radius = 3.0f;
+        //initialize plane
+        yPlane = planeTransform.position.y;
+        //initialize cloth translate
+        clothTranslate = new float[3];
+        clothTranslate[0] = 0.0f;
+        clothTranslate[1] = 0.0f;
+        clothTranslate[2] = 0.0f;
 
         // initialize pointElements array
         numVertices = baseVertices.Length;
@@ -131,6 +167,8 @@ public class ClothGPU : MonoBehaviour
         deltaPosArray = new DeltaPos[numVertices];
         // initialize delta counters
         deltaCounterArray = new int[numVertices];
+        //initialize deltapos int array
+        deltaPosUintArray = new DeltaPosUInt[numVertices];
 
         for (int i = 0; i < numVertices; ++i)
         {
@@ -146,6 +184,11 @@ public class ClothGPU : MonoBehaviour
             deltaPosArray[i].deltaX = 0.0f;
             deltaPosArray[i].deltaY = 0.0f;
             deltaPosArray[i].deltaZ = 0.0f;
+
+            // initialize delta Pos int array
+            deltaPosUintArray[i].deltaXInt = 0;
+            deltaPosUintArray[i].deltaYInt = 0;
+            deltaPosUintArray[i].deltaZInt = 0;
 
             // initialize delta counter array
             deltaCounterArray[i] = 0;
@@ -197,6 +240,7 @@ public class ClothGPU : MonoBehaviour
         distanceConstraintsBuffer = new ComputeBuffer(numEdges, _size_DistanceConstraint);
         DeltaPosBuffer = new ComputeBuffer(numVertices, _size_DeltaPos);
         DeltaCounterBuffer = new ComputeBuffer(numVertices, 4);
+        DeltaPosIntBuffer = new ComputeBuffer(numVertices, _size_DeltaPosInt);
 
         //set data for PointElementOldBuffer
         PointElementOldBuffer.SetData(pointElements_Old);
@@ -207,34 +251,41 @@ public class ClothGPU : MonoBehaviour
         PBD_SolvingConstraintsKernelID = solvingConstraints.FindKernel("CalculateDeltas");
         PBD_AveragingDeltasKernelID = solvingConstraints.FindKernel("AveragingDeltas");
         PBD_PointConstraintsKernelID = pointConstraints.FindKernel("CSMain");
-        PBD_UpdataPosVelKernelID = updatePosVel.FindKernel("CSMain");
+        PBD_UpdataPosVelKernelID = updatePosVel.FindKernel("UpdatePosVel");
 
         //bind computebuffer
         applyExtForce.SetBuffer(PBD_ExtForceKernelID, "pointElements", PointElementBuffer);
 
         solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "distanceConstraintData", distanceConstraintsBuffer);
         solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "pointElements", PointElementBuffer);
+        solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "pointElements_Old", PointElementOldBuffer);
         solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "deltaPos", DeltaPosBuffer);
         solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "deltaCount", DeltaCounterBuffer);
+        solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "deltaPosASInt", DeltaPosIntBuffer);
         //solvingConstraints.SetBuffer(PBD_SolvingConstraintsKernelID, "pointElements_Old", PointElementOldBuffer);
         solvingConstraints.SetBuffer(PBD_AveragingDeltasKernelID, "pointElements", PointElementBuffer);
         solvingConstraints.SetBuffer(PBD_AveragingDeltasKernelID, "deltaPos", DeltaPosBuffer);
         solvingConstraints.SetBuffer(PBD_AveragingDeltasKernelID, "deltaCount", DeltaCounterBuffer);
+        solvingConstraints.SetBuffer(PBD_AveragingDeltasKernelID, "deltaPosASInt", DeltaPosIntBuffer);
 
         pointConstraints.SetBuffer(PBD_PointConstraintsKernelID, "pointElements", PointElementBuffer);
         pointConstraints.SetBuffer(PBD_PointConstraintsKernelID, "pointElements_Old", PointElementOldBuffer);
+
+        updatePosVel.SetBuffer(PBD_UpdataPosVelKernelID, "pointElements", PointElementBuffer);
+        updatePosVel.SetBuffer(PBD_UpdataPosVelKernelID, "pointElements_Old", PointElementOldBuffer);
 
         //set data for compute buffers (data that only needs to be set once in the beginning)
         distanceConstraintsBuffer.SetData(distanceConstraints);
         DeltaPosBuffer.SetData(deltaPosArray);
         DeltaCounterBuffer.SetData(deltaCounterArray);
+        DeltaPosIntBuffer.SetData(deltaPosUintArray);
 
         //calculate and set the work group size
         numGroups_Vertices = Mathf.CeilToInt((float)numVertices / _size_WorkGroup);
         Debug.Log(numGroups_Vertices);
         numGroups_Edges = Mathf.CeilToInt((float)numEdges / _size_WorkGroup);
         Debug.Log(numGroups_Edges);
-
+        numGroups_VE = Mathf.CeilToInt((float)(numEdges + numVertices) / _size_WorkGroup);
     }
 
     private void OnDestroy()
@@ -250,6 +301,12 @@ public class ClothGPU : MonoBehaviour
 
         if (DeltaPosBuffer != null)
             DeltaPosBuffer.Release();
+
+        if (DeltaCounterBuffer != null)
+            DeltaCounterBuffer.Release();
+
+        if (DeltaPosIntBuffer != null)
+            DeltaPosIntBuffer.Release();
     }
 
     // Update is called once per frame
@@ -257,6 +314,33 @@ public class ClothGPU : MonoBehaviour
     {
         //send data to compute shader;
         PointElementBuffer.SetData(pointElements);
+        //update yplane for interaction
+        yPlane = planeTransform.position.y;
+        //update cloth translate
+        if (Input.GetKey("up"))
+        {
+            clothTranslate[1] += 0.001f;
+        }
+        if (Input.GetKey("down"))
+        {
+            clothTranslate[1] -= 0.001f;
+        }
+        if (Input.GetKey("left"))
+        {
+            clothTranslate[0] += 0.001f;
+        }
+        if (Input.GetKey("right"))
+        {
+            clothTranslate[0] -= 0.001f;
+        }
+        if (Input.GetKey("z"))
+        {
+            clothTranslate[2] += 0.001f;
+        }
+        if (Input.GetKey("c"))
+        {
+            clothTranslate[2] -= 0.001f;
+        }
 
         ApplyExtForce();
 
@@ -265,14 +349,22 @@ public class ClothGPU : MonoBehaviour
         //DeltaPosBuffer.SetData(deltaPosArray);
         //DeltaCounterBuffer.SetData(deltaCounterArray);
 
-        //SolvingConstraints();
+        SolvingConstraints();
 
-        //SatisfyPointConstraints(0);
+        //DeltaPosBuffer.GetData(deltaPosArray);
+        //DeltaCounterBuffer.GetData(deltaCounterArray);
+
+        //Debug.Log(deltaPosArray[0].deltaX);
+        //Debug.Log(deltaCounterArray[0]);
+
+        SatisfyPointConstraints(120,110);
+
+        UpdatePosVel();
 
         // after compute, read modified data from buffer
         PointElementBuffer.GetData(pointElements);
 
-        Debug.Log(pointElements[0].worldVelocity.y);
+        Debug.Log(pointElements[0].worldPosition.y);
 
         Vector3[] vertices = new Vector3[baseVertices.Length];
 
@@ -311,19 +403,42 @@ public class ClothGPU : MonoBehaviour
         // send the num of edges to compute shader
         solvingConstraints.SetInt("numVertices", numVertices);
 
-        solvingConstraints.Dispatch(PBD_SolvingConstraintsKernelID,numGroups_Edges,1,1);
+        // send the center and radius of the sphere
+        solvingConstraints.SetFloat("radius", radius);
+        solvingConstraints.SetFloats("center", center);
+
+        solvingConstraints.Dispatch(PBD_SolvingConstraintsKernelID,numGroups_VE, 1,1);
 
         solvingConstraints.Dispatch(PBD_AveragingDeltasKernelID, numGroups_Vertices, 1, 1);
     }
 
-    void SatisfyPointConstraints(int fixedPointIndex)
+    void SatisfyPointConstraints(int fixedPointIndex1, int fixedPointIndex2)
     {
         //no need to set pointElementBuffer's data, just directly use the buffer coming out from previous kernels
 
         //set the index of pinned vertex
-        pointConstraints.SetInt("fixedPointIndex", fixedPointIndex);
+        pointConstraints.SetInt("fixedPointIndex1", fixedPointIndex1);
+        pointConstraints.SetInt("fixedPointIndex2", fixedPointIndex2);
 
+        // send the num of edges to compute shader
+        pointConstraints.SetInt("numVertices", numVertices);
+
+        // send the center and radius of the sphere
+        pointConstraints.SetFloat("radius", radius);
+        pointConstraints.SetFloats("center", center);
+
+        pointConstraints.SetFloats("clothTranslate", clothTranslate);
+
+        pointConstraints.SetFloat("yPlane", yPlane);
         //run the kernel
         pointConstraints.Dispatch(PBD_PointConstraintsKernelID, numGroups_Vertices, 1, 1);
+    }
+
+    void UpdatePosVel()
+    {
+        updatePosVel.SetInt("numVertices", numVertices);
+        updatePosVel.SetFloat("deltaTime", Time.deltaTime);
+
+        updatePosVel.Dispatch(PBD_UpdataPosVelKernelID, numGroups_Vertices, 1, 1);
     }
 }
