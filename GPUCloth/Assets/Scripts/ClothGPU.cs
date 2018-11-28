@@ -63,6 +63,8 @@ public class ClothGPU : MonoBehaviour
 
     // compute shaders
     public ComputeShader applyExtForce;
+    public ComputeShader dampVelocity;
+    public ComputeShader positionPrediction;
     public ComputeShader solvingConstraints;
     public ComputeShader pointConstraints;
     public ComputeShader updatePosVel;
@@ -112,11 +114,13 @@ public class ClothGPU : MonoBehaviour
     public int iterationNum = 10;
 
     // constraint weights
-    public float distanceWeight = 1.2f;
+    public float distanceWeight = 0.8f;
 
     // collision sphere
     public float[] center;
     public float radius = 1.0f;
+    public Transform sphereTransform;
+    Vector3 centerVec3;
     // collision plane
     float yPlane = 0.0f;
     public Transform planeTransform;
@@ -146,11 +150,14 @@ public class ClothGPU : MonoBehaviour
         baseVertices = mesh.vertices;
 
         //initialize sphere
+        centerVec3 = sphereTransform.position;
+
         center = new float[3];
-        center[0] = 0.0f;
-        center[1] = -4.0f;
-        center[2] = 0.0f;
-        radius = 3.0f;
+        center[0] = centerVec3.x;
+        center[1] = centerVec3.y;
+        center[2] = centerVec3.z;
+        radius = sphereTransform.localScale.y / 2.0f;
+
         //initialize plane
         yPlane = planeTransform.position.y;
         //initialize cloth translate
@@ -312,35 +319,12 @@ public class ClothGPU : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+       
         //send data to compute shader;
         PointElementBuffer.SetData(pointElements);
-        //update yplane for interaction
-        yPlane = planeTransform.position.y;
-        //update cloth translate
-        if (Input.GetKey("up"))
-        {
-            clothTranslate[1] += 0.001f;
-        }
-        if (Input.GetKey("down"))
-        {
-            clothTranslate[1] -= 0.001f;
-        }
-        if (Input.GetKey("left"))
-        {
-            clothTranslate[0] += 0.001f;
-        }
-        if (Input.GetKey("right"))
-        {
-            clothTranslate[0] -= 0.001f;
-        }
-        if (Input.GetKey("z"))
-        {
-            clothTranslate[2] += 0.001f;
-        }
-        if (Input.GetKey("c"))
-        {
-            clothTranslate[2] -= 0.001f;
-        }
+
+        //monitor key presses and read transformations
+        PressingKeys();
 
         ApplyExtForce();
 
@@ -385,6 +369,9 @@ public class ClothGPU : MonoBehaviour
     void ApplyExtForce()
     {
         // Send uniform data to compute shader
+        applyExtForce.SetInt("numVertices", numVertices);
+
+        // Send uniform data to compute shader
         applyExtForce.SetFloat("deltaTime", Time.deltaTime);
 
         // run the kernel to update pointElements
@@ -404,12 +391,17 @@ public class ClothGPU : MonoBehaviour
         solvingConstraints.SetInt("numVertices", numVertices);
 
         // send the center and radius of the sphere
-        solvingConstraints.SetFloat("radius", radius);
-        solvingConstraints.SetFloats("center", center);
+        //solvingConstraints.SetFloat("radius", radius);
+        //solvingConstraints.SetFloats("center", center);
 
-        solvingConstraints.Dispatch(PBD_SolvingConstraintsKernelID,numGroups_VE, 1,1);
+        for(int index = 0; index < 10; index++)
+        {
 
-        solvingConstraints.Dispatch(PBD_AveragingDeltasKernelID, numGroups_Vertices, 1, 1);
+
+            solvingConstraints.Dispatch(PBD_SolvingConstraintsKernelID, numGroups_Edges, 1, 1);
+
+            solvingConstraints.Dispatch(PBD_AveragingDeltasKernelID, numGroups_Vertices, 1, 1);
+        }
     }
 
     void SatisfyPointConstraints(int fixedPointIndex1, int fixedPointIndex2)
@@ -441,4 +433,44 @@ public class ClothGPU : MonoBehaviour
 
         updatePosVel.Dispatch(PBD_UpdataPosVelKernelID, numGroups_Vertices, 1, 1);
     }
+
+    void PressingKeys()
+    {
+        //update yplane for interaction
+        yPlane = planeTransform.position.y;
+
+        centerVec3 = sphereTransform.position;
+
+        center[0] = centerVec3.x;
+        center[1] = centerVec3.y;
+        center[2] = centerVec3.z;
+
+        //update cloth translate
+        if (Input.GetKey("up"))
+        {
+            clothTranslate[1] += 0.001f;
+        }
+        if (Input.GetKey("down"))
+        {
+            clothTranslate[1] -= 0.001f;
+        }
+        if (Input.GetKey("left"))
+        {
+            clothTranslate[0] += 0.001f;
+        }
+        if (Input.GetKey("right"))
+        {
+            clothTranslate[0] -= 0.001f;
+        }
+        if (Input.GetKey("z"))
+        {
+            clothTranslate[2] += 0.001f;
+        }
+        if (Input.GetKey("c"))
+        {
+            clothTranslate[2] -= 0.001f;
+        }
+
+    }
+
 }

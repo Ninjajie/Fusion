@@ -33,7 +33,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
 	//Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
 
-	//if (id.x >= numVertices)return;
+	if (id.x >= numVertices)return;
+
+	//pinned points constraints
 	if (id.x == fixedPointIndex1 || id.x == fixedPointIndex2) {
 		pointElements[id.x] = pointElements_Old[id.x];
 		pointElements[id.x].worldPosition += clothTranslate;
@@ -43,43 +45,47 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 		pointElements[id.x].worldPosition.y = yPlane + 0.01f;
 
 
+
 	// **********buggy sphere collision
 
-	//radius = 3;
-	//center.x = 0;
-	//center.y = -4;
-	//center.z = 0;
+//radius = 3.0f;
+//center.x = 0.0f;
+//center.y = -6.0f;
+//center.z = 0.0f;
 
-	//PointElement p = pointElements[id.x];
-	//PointElement p_old = pointElements_Old[id.x];
-	//float3 pos = p_old.worldPosition;
-	//float3 projectedPos = p.worldPosition;
-	//// get collision pos and normals
+	PointElement p = pointElements[id.x];
+	PointElement p_old = pointElements_Old[id.x];
+	float3 pos = p_old.worldPosition;
+	float3 projectedPos = p.worldPosition;
+	// get collision pos and normals
 
-	//float3 direction = normalize(projectedPos - pos);
-	//// L is the distance from original point to the center
-	//float L = length(center - pos);
-	//// tc is the distance from original point to the center's
-	//// projected point on the ray
-	//float tc = dot(center - pos, direction);
-	//// d is the closest distance from center to the ray
-	//float d = sqrt(L * L - tc * tc);
-	//// tc1 is the distance from the collision point to the center's
-	//// projected point on the ray
-	//float tc1 = sqrt(radius * radius - d * d);
-	//// t is the distance from original position to the collision point
-	//float t = tc - tc1;
+	float3 direction = normalize(projectedPos - pos);
+	// L is the distance from original point to the center
+	float L = length(center - pos);
+	// tc is the distance from original point to the center's
+	// projected point on the ray
+	float tc = dot(center - pos, direction);
+	// d is the closest distance from center to the ray
+	float d = sqrt(L * L - tc * tc);
+	// tc1 is the distance from the collision point to the center's
+	// projected point on the ray
+	float tc1 = sqrt(radius * radius - d * d);
+	// t is the distance from original position to the collision point
+	float t = tc - tc1;
 
-	//float3 collisionPos = pos + direction * t;
-	//float3 normal = normalize(collisionPos - center);
+	float3 collisionPos = pos + direction * t;
+	float3 normal = normalize(collisionPos - center);
 
-	//float cp = dot(projectedPos - collisionPos, normal);
+	float cp = dot(projectedPos - collisionPos, normal);
 
-	//if (cp < 0) { // constraint violated. project the constraint
-	//			  // n is the normal of the closest point on the sphere's surface to p
-	//	float3 n = normalize(projectedPos - center);
-	//	// q is the closest point on the sphere's surface to p
-	//	float3 q = center + n * radius;
-	//	pointElements[id.x].worldPosition = q;
-	//}
+	if (cp < 0.0f) { // constraint violated. project the constraint
+				  // n is the normal of the closest point on the sphere's surface to p
+		float3 n = normalize(projectedPos - center);
+		// q is the closest point on the sphere's surface to p
+		float3 q = center + n * (radius * 1.06f);
+		if (length(collisionPos - projectedPos) >= 0.9f)return;
+		//pointElements[id.x].worldPosition += (collisionPos - projectedPos) * 0.99f;
+		pointElements[id.x].worldPosition = q;
+	}
 }
+

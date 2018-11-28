@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\MovingPlane.cs" />
+    <Compile Include="Assets\MovingSphere.cs" />
     <Compile Include="Assets\Procedural Example\Scripts\CrumpleMesh.cs" />
     <Compile Include="Assets\Procedural Example\Scripts\ExtrudedMeshTrail.cs" />
     <Compile Include="Assets\Procedural Example\Scripts\FractalTexture.cs" />

@@ -18,11 +18,12 @@ struct PointElement {
 RWStructuredBuffer<PointElement> pointElements;
 
 float deltaTime;
+int numVertices;
 
 [numthreads(8,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-
+	if (id.x >= numVertices)return;
 	// read current particles from buffer
 	PointElement p = pointElements[id.x];
 	// define gravity
@@ -32,7 +33,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	float3 velocity = p.worldVelocity;
 	// update position & velocity
 	velocity += gravityAccel * deltaTime;
-	position += velocity * deltaTime;
+	position += velocity * deltaTime * 0.995f;
 	// write updated data back
 	pointElements[id.x].worldPosition = position;
 	pointElements[id.x].worldVelocity = velocity;
