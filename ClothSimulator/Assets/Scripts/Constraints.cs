@@ -230,31 +230,49 @@ public class IsometricBendingConstraint : Constraint {
     }
 }
 
-public class CollisionConstraint : Constraint {
+public class SphereCollisionConstraint : Constraint {
     private int vertexIndex;
-    private Vector3 collisionPos;
+    private Vector3 sphereCenter;
+    private float sphereRadius;
+    private Vector3 collisionPosition;
     private Vector3 collisionNormal;
-    private Collider collider;
-    private Vector3 closestPos;
 
-    public CollisionConstraint(int i, RaycastHit info, Vector3 originalPos) {
+    public SphereCollisionConstraint(int i, Vector3 center, float radius, Vector3 position, Vector3 projectedPosition) {
         vertexIndex = i;
-        collider = info.collider;
-        collisionPos = info.point;
-        collisionNormal = info.normal;
-        //closestPos = collider.ClosestPoint(originalPos) + collisionNormal * 0.001f;
-        closestPos = collisionPos + collisionNormal * 0.001f;
+        sphereCenter = center;
+        sphereRadius = radius;
 
+        Vector3 direction = (projectedPosition - position).normalized;
+        // L is the distance from original point to the center
+        float L = (center - position).magnitude;
+        // tc is the distance from original point to the center's
+        // projected point on the ray
+        float tc = Vector3.Dot(center - position, direction);
+        // d is the closest distance from center to the ray
+        float d = Mathf.Sqrt(L * L - tc * tc);
+        // tc1 is the distance from the collision point to the center's
+        // projected point on the ray
+        float tc1 = Mathf.Sqrt(radius * radius - d * d);
+        // t is the distance from original position to the collision point
+        float t = tc - tc1;
+
+        collisionPosition = position + direction * t;
+        collisionNormal = (collisionPosition - center).normalized;
     }
 
     public override void Satisfy(Vector3[] projectedPositions, float mass) {
         Vector3 p = projectedPositions[vertexIndex];
-        float cp = Vector3.Dot(p - collisionPos, collisionNormal);
+        float cp = Vector3.Dot(p - collisionPosition, collisionNormal);
 
         if (cp < 0) { // if constraint violated, project the constraint
-            projectedPositions[vertexIndex] = closestPos;
+            Vector3 n = (p - sphereCenter).normalized;
+            // q is the closest point on the sphere's surface to p
+            Vector3 q = sphereCenter + n * (sphereRadius + 0.001f);
+
+            projectedPositions[vertexIndex] = q;
         }
     }
+    
 }
 
 public class PointConstraint {

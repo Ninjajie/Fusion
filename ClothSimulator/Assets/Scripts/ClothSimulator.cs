@@ -293,12 +293,23 @@ public class ClothSimulator : MonoBehaviour {
     }
 
     public void GenerateCollisionConstraints() {
+        Collider[] colliders = FindObjectsOfType<Collider>();
+
         for (int i = 0; i < numParticles; i++) {
-            RaycastHit info;
-            
-            if (Physics.Linecast(positions[i], projectedPositions[i], out info, collisionLayers)) {
-                print("hit");
-                collisionConstraints.Add(new CollisionConstraint(i, info, positions[i]));
+            for (int j = 0; j < colliders.Length; j++) {
+                if (colliders[j].GetType() == typeof(SphereCollider)) {
+                    Vector3 center = colliders[j].GetComponent<SphereCollider>().center + colliders[j].gameObject.transform.position;
+                    float radius = colliders[j].GetComponent<SphereCollider>().radius * colliders[j].gameObject.transform.lossyScale.x;
+                    if ((projectedPositions[i] - center).magnitude < radius) {
+                        collisionConstraints.Add(new SphereCollisionConstraint(i, center, radius, positions[i], projectedPositions[i]));
+                    }
+                }
+                else if (colliders[j].GetType() == typeof(BoxCollider)) {
+                    // TODO
+                }
+                else if (colliders[j].GetType() == typeof(CapsuleCollider)) {
+                    // TODO
+                }
             }
         }
     }
