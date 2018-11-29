@@ -9,10 +9,10 @@ Jie - Compute Shader Pipeline Setup and test
 ## Week 2 - 11/28/2018 (Wednesday)
 Jie - Port MileStone1 CPU PBD cloth into Unity Compute Shader 
 
-[](DemoImages/44.gif)
+![](DemoImages/44.gif)
 ------------------------------
 
-[](DemoImages/55.gif)
+![](DemoImages/55.gif)
 --------------------------------
 
 #### Interactive Video
