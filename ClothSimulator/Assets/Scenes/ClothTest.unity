@@ -211,13 +211,14 @@ GameObject:
   - component: {fileID: 237793801}
   - component: {fileID: 237793800}
   - component: {fileID: 237793799}
+  - component: {fileID: 237793803}
   m_Layer: 0
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &237793799
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -279,12 +280,24 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 237793798}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -3.32, z: -0.17}
+  m_LocalPosition: {x: 0, y: -5.92, z: -0.17}
   m_LocalScale: {x: 31.67029, y: 1.1207359, z: 31.383745}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &237793803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 237793798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d6cf9639e0b5554c84678aa6ed0fcc9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  friction: 1
 --- !u!1 &367515091
 GameObject:
   m_ObjectHideFlags: 0
@@ -309,7 +322,7 @@ Transform:
   m_GameObject: {fileID: 367515091}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2.55}
-  m_LocalScale: {x: 2, y: 1, z: 2}
+  m_LocalScale: {x: 1.5, y: 1, z: 1.5}
   m_Children:
   - {fileID: 37713299}
   m_Father: {fileID: 0}
@@ -327,11 +340,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timestep: 0.02
-  iterationNum: 10
-  vertexMass: 4
+  iterationNum: 5
+  vertexMass: 1
   gravity: {x: 0, y: -9.81, z: 0}
-  rows: 20
-  columns: 20
+  rows: 15
+  columns: 15
   useSmartDamping: 1
   distanceCompressionStiffness: 1
   distanceStretchStiffness: 1

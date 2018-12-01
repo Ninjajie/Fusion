@@ -30,6 +30,7 @@ public class ClothSimulator : MonoBehaviour {
     private Vector3[] positions; 
     private Vector3[] projectedPositions;
     private Vector3[] velocities;
+    private float[] frictions;
     private Triangle[] triangles;
     private float invMass;
     private List<Constraint> constraints = new List<Constraint>();
@@ -60,6 +61,7 @@ public class ClothSimulator : MonoBehaviour {
         positions = new Vector3[numParticles];
         projectedPositions = new Vector3[numParticles];
         velocities = new Vector3[numParticles];
+        frictions = new float[numParticles];
         //vertexMass = extent.x * extent.y * rows * columns / 10000f;
 
         // make new mesh for the opposite side
@@ -81,6 +83,7 @@ public class ClothSimulator : MonoBehaviour {
             positions[i] = baseVertices[i];
             projectedPositions[i] = baseVertices[i];
             velocities[i] = Vector3.zero;
+            frictions[i] = 1;
         }
         invMass = 1.0f / vertexMass;
 
@@ -329,6 +332,9 @@ public class ClothSimulator : MonoBehaviour {
 
     public void ClearCollisionConstraints() {
         collisionConstraints.Clear();
+        for (int i = 0; i < numParticles; i++) {
+            frictions[i] = 1;
+        }
     }
 
     public void GenerateCollisionConstraints() {
@@ -336,10 +342,13 @@ public class ClothSimulator : MonoBehaviour {
 
         for (int i = 0; i < numParticles; i++) {
             for (int j = 0; j < colliders.Length; j++) {
+                bool collided = false;
+
                 if (colliders[j].GetType() == typeof(SphereCollider)) {
                     Vector3 center = colliders[j].GetComponent<SphereCollider>().center + colliders[j].transform.position;
                     float radius = colliders[j].GetComponent<SphereCollider>().radius * colliders[j].transform.lossyScale.x;
                     if ((projectedPositions[i] - center).magnitude < radius) {
+                        collided = true;
                         collisionConstraints.Add(new SphereCollisionConstraint(i, center, radius, positions[i], projectedPositions[i]));
                     }
                 }
@@ -348,11 +357,19 @@ public class ClothSimulator : MonoBehaviour {
                     Vector3 localPosition = colliders[j].transform.InverseTransformPoint(positions[i]);
                     Vector3 localProjectedPosition = colliders[j].transform.InverseTransformPoint(projectedPositions[i]);
                     if (Utility.IsPointInCube(localProjectedPosition, extent)) {
+                        collided = true;
                         collisionConstraints.Add(new CubeCollisionConstraint(i, localPosition, localProjectedPosition, extent, colliders[j].transform));
                     }
                 }
                 else if (colliders[j].GetType() == typeof(CapsuleCollider)) {
                     // TODO
+                }
+
+                if (collided) { 
+                    ClothFrictionCollider frictionCollider = colliders[j].gameObject.GetComponent<ClothFrictionCollider>();
+                    if (frictionCollider != null) {
+                        frictions[i] = Mathf.Min(frictions[i], 1f - frictionCollider.friction);
+                    }
                 }
             }
         }
@@ -407,11 +424,11 @@ public class ClothSimulator : MonoBehaviour {
         }
         // do simple ground friction by setting speed of objects on ground to zero
         for (int i = 0; i < numParticles; i++) {
-            if (positions[i][1] == 0) {
-                velocities[i][0] *= 0.9f;
-                velocities[i][2] *= 0.9f;
-                if (Mathf.Abs(velocities[i][0]) < 0.2f) velocities[i][0] = 0;
-                if (Mathf.Abs(velocities[i][2]) < 0.2f) velocities[i][2] = 0;
+            if (frictions[i] < 1) {
+                velocities[i] *= frictions[i];
+                //velocities[i] = new Vector3(Mathf.Abs(velocities[i][0]) < 0.2f ? 0 : velocities[i][0],
+                //                            Mathf.Abs(velocities[i][1]) < 0.2f ? 0 : velocities[i][1],
+                //                            Mathf.Abs(velocities[i][2]) < 0.2f ? 0 : velocities[i][2]);
             }
         }
     }
