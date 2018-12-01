@@ -20,7 +20,7 @@ public class ClothSimulator : MonoBehaviour {
     public float dampingStiffness = 0.02f;
 
     // constraint data
-    public int[] pointConstraintIndices;
+    public bool usePointConstraint;
     public float groundPlane;
     public bool useGroundConstraint;
     public bool useDistanceConstraint;
@@ -48,14 +48,14 @@ public class ClothSimulator : MonoBehaviour {
     // Use this for initialization
     void Start () {
         // create new mesh
-        //mesh = Utility.CreateClothMesh(rows, columns, 1f);
-        mesh = transform.GetChild(0).GetComponent<MeshFilter>().mesh;
-        //transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
+        mesh = Utility.CreateClothMesh(rows, columns, 0.5f);
+        //mesh = transform.GetChild(0).GetComponent<MeshFilter>().mesh;
+        transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
 
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
-        print(baseVertices.Length);
+
         positions = new Vector3[numParticles];
         projectedPositions = new Vector3[numParticles];
         velocities = new Vector3[numParticles];
@@ -90,10 +90,10 @@ public class ClothSimulator : MonoBehaviour {
         }
 
         // add constraints
-        if (pointConstraintIndices.Length > 0) {
-            for (int i = 0; i < pointConstraintIndices.Length; i++) {
-                pointConstraints.Add(new PointConstraint(pointConstraintIndices[i]));
-            }
+        if (usePointConstraint) {
+            // top left and right
+            pointConstraints.Add(new PointConstraint(rows * (columns + 1)));
+            pointConstraints.Add(new PointConstraint((rows + 1) * (columns + 1) - 1));
         }
         if (useDistanceConstraint) {
             // use a set to get unique edges
@@ -204,6 +204,7 @@ public class ClothSimulator : MonoBehaviour {
 
     void Update () {
         if (Input.GetKeyDown(KeyCode.Space)) {
+            print(mesh.triangles.Length);
             for (int i = 0; i < mesh.triangles.Length; i++) {
                 print(mesh.triangles[i]);
 

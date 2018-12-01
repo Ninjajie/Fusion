@@ -217,7 +217,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &237793799
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -308,7 +308,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 367515091}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -2.55}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 37713299}
@@ -330,15 +330,15 @@ MonoBehaviour:
   iterationNum: 10
   vertexMass: 1
   gravity: {x: 0, y: -9.81, z: 0}
-  rows: 10
-  columns: 10
+  rows: 20
+  columns: 20
   useSmartDamping: 1
   distanceCompressionStiffness: 0.8
   distanceStretchStiffness: 0.8
   bendingStiffness: 0.01
   dampingMethod: 2
   dampingStiffness: 0.01
-  pointConstraintIndices: 6e00000078000000
+  usePointConstraint: 1
   groundPlane: -2
   useGroundConstraint: 0
   useDistanceConstraint: 1
