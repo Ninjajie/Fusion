@@ -309,7 +309,7 @@ Transform:
   m_GameObject: {fileID: 367515091}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2.55}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 1, z: 2}
   m_Children:
   - {fileID: 37713299}
   m_Father: {fileID: 0}
@@ -328,13 +328,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timestep: 0.02
   iterationNum: 10
-  vertexMass: 1
+  vertexMass: 4
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 20
   columns: 20
   useSmartDamping: 1
-  distanceCompressionStiffness: 0.8
-  distanceStretchStiffness: 0.8
+  distanceCompressionStiffness: 1
+  distanceStretchStiffness: 1
   bendingStiffness: 0.01
   dampingMethod: 2
   dampingStiffness: 0.01

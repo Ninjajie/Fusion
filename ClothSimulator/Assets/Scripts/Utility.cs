@@ -77,7 +77,9 @@ public static class Utility {
     // 0 --- 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7 --- 8 --- 9 --- 10
     // width is the number of blocks across. height is the number of blocks down.
     // starting position dictates the starting position of vertex 1
-    public static Mesh CreateClothMesh(int rows, int columns, float vertexDist) {
+    public static Mesh CreateClothMesh(int rows, int columns, Vector2 size) {
+        Vector2 vertexDist = new Vector2(size.x / columns, size.y / rows);
+        Vector3 offset = new Vector3(size.x / 2, 0, size.y / 2);
         int numVertices = (rows + 1) * (columns + 1);
         int numTris = rows * columns * 2;
         Vector3[] vertices = new Vector3[numVertices];
@@ -87,7 +89,7 @@ public static class Utility {
         int index = 0;
         for (int i = 0; i <= rows; i++) {
             for (int j = 0; j <= columns; j++) {
-                vertices[index++] = new Vector3(-j * vertexDist, 0, -i * vertexDist);
+                vertices[index++] = new Vector3(-j * vertexDist.x, 0, -i * vertexDist.y) + offset;
             }
         }
 
@@ -110,4 +112,23 @@ public static class Utility {
         newMesh.RecalculateTangents();
         return newMesh;
     }
+
+    public static Vector2 GetMeshExtent(Mesh mesh, Vector3 scale) {
+        float maxX = float.MinValue;
+        float maxZ = float.MinValue;
+        float minX = float.MaxValue;
+        float minZ = float.MaxValue;
+        Vector3[] vertices = mesh.vertices;
+
+        for (int i = 0; i < vertices.Length; i++) {
+            Vector3 pos = vertices[i];
+            maxX = Mathf.Max(maxX, pos.x);
+            maxZ = Mathf.Max(maxX, pos.z);
+            minX = Mathf.Min(minX, pos.x);
+            minZ = Mathf.Min(minZ, pos.z);
+        }
+
+        return new Vector2(maxX - minX, maxZ - minZ);
+    }
+
 }

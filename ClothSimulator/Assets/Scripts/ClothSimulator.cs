@@ -47,11 +47,12 @@ public class ClothSimulator : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        // create new mesh
-        mesh = Utility.CreateClothMesh(rows, columns, 0.5f);
-        //mesh = transform.GetChild(0).GetComponent<MeshFilter>().mesh;
-        transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
+        // get data from temporary mesh
+        Vector2 extent = Utility.GetMeshExtent(transform.GetChild(0).GetComponent<MeshFilter>().mesh, transform.lossyScale);
 
+        // create new mesh
+        mesh = Utility.CreateClothMesh(rows, columns, extent);
+        transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
@@ -59,6 +60,7 @@ public class ClothSimulator : MonoBehaviour {
         positions = new Vector3[numParticles];
         projectedPositions = new Vector3[numParticles];
         velocities = new Vector3[numParticles];
+        //vertexMass = extent.x * extent.y * rows * columns / 10000f;
 
         // make new mesh for the opposite side
         GameObject newCloth = Instantiate(transform.GetChild(0).gameObject, transform);
