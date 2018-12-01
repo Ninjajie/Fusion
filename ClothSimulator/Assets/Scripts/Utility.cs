@@ -70,13 +70,44 @@ public static class Utility {
         return t9;
     }
 
-    public static Mesh DeepCopyMesh(Mesh target) {
+    // generates a cloth mesh where each point is vertexDist apart and in the shape of
+    // 11 -- 12 -- 13
+    // | 1 / |  / |
+    // |  / 2| /  |
+    // 0 -- 1 -- 2
+    // width is the number of blocks across. height is the number of blocks down.
+    // starting position dictates the starting position of vertex 1
+    public static Mesh CreateClothMesh(int rows, int columns, float vertexDist) {
+        int numVertices = (rows + 1) * (columns + 1);
+        int numTris = rows * columns;
+        Vector3[] vertices = new Vector3[numVertices];
+        int[] triangles = new int[numTris * 3];
         Mesh newMesh = new Mesh();
-        newMesh.vertices = target.vertices;
-        newMesh.normals = target.normals;
-        newMesh.uv = target.uv;
-        newMesh.triangles = target.triangles;
-        newMesh.tangents = target.tangents;
+
+        int index = 0;
+        for (int i = 0; i <= rows; i++) {
+            for (int j = 0; j <= columns; j++) {
+                vertices[index++] = new Vector3(0 + j * vertexDist, 0, 0 + i * vertexDist);
+            }
+        }
+
+        index = 0;
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                triangles[index++] = i * (columns + 1) + j;
+                triangles[index++] = (i + 1) * (columns + 1) + j;
+                triangles[index++] = (i + 1) * (columns + 1) + j + 1;
+                triangles[index++] = i * (columns + 1) + j;
+                triangles[index++] = (i + 1) * (columns + 1) + j + 1;
+                triangles[index++] = i * (columns + 1) + j + 1;
+            }
+        }
+
+        newMesh.vertices = vertices;
+        newMesh.triangles = triangles;
+        newMesh.RecalculateBounds();
+        newMesh.RecalculateNormals();
+        newMesh.RecalculateTangents();
         return newMesh;
     }
 }

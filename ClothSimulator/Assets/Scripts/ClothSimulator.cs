@@ -47,9 +47,15 @@ public class ClothSimulator : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
+        // create new mesh
+        //mesh = Utility.CreateClothMesh(rows, columns, 1f);
         mesh = transform.GetChild(0).GetComponent<MeshFilter>().mesh;
+        //transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
+
+
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
+        print(baseVertices.Length);
         positions = new Vector3[numParticles];
         projectedPositions = new Vector3[numParticles];
         velocities = new Vector3[numParticles];
@@ -197,6 +203,13 @@ public class ClothSimulator : MonoBehaviour {
     }
 
     void Update () {
+        if (Input.GetKeyDown(KeyCode.Space)) {
+            for (int i = 0; i < mesh.triangles.Length; i++) {
+                print(mesh.triangles[i]);
+
+            }
+        }
+
         // TODO: set dt to deltaTime for now. change this later for more customization
         float dt = Time.deltaTime;
 

@@ -1,10 +1,13 @@
 TODO for CPU version of PBD
-- import the PBD class structure into Unity
-    - simple collision constraint with sphere
-        - use unity collision system
-- look into the official PBD implementation to steal some designs
+- finish up cloth
+    - do proper triangle collision
+        - fix cubes
+        - implement capsules
+- import Eigne into C# -> or not if you use .NET apparently
 
 TODO for usability
 - use a quad to represent the cloth size, then specify a size and generate
     a cloth mesh on the fly to replace the quad
 - duplicate the cloth mesh and reverse normals for double sided shading
+- apply global transformation and rotation to the cloth transform
+
