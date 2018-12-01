@@ -3,11 +3,6 @@ TODO for CPU version of PBD
     - do proper triangle collision
         - fix cubes
         - implement capsules
-- import Eigne into C# -> or not if you use .NET apparently
+- framerate-independent calculations (maybe using fixed update)
 
-TODO for usability
-- use a quad to represent the cloth size, then specify a size and generate
-    a cloth mesh on the fly to replace the quad
-- duplicate the cloth mesh and reverse normals for double sided shading
-- apply global transformation and rotation to the cloth transform
 
