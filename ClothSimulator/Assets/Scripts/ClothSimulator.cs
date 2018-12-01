@@ -27,6 +27,7 @@ public class ClothSimulator : MonoBehaviour {
     public BendingMethod bendingMethod;
 
     // simulation data
+    private Matrix4x4 worldToLocalMat;
     private Vector3[] positions; 
     private Vector3[] projectedPositions;
     private Vector3[] velocities;
@@ -48,12 +49,11 @@ public class ClothSimulator : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        // get data from temporary mesh
-        Vector2 extent = Utility.GetMeshExtent(transform.GetChild(0).GetComponent<MeshFilter>().mesh, transform.lossyScale);
-
         // create new mesh
-        mesh = Utility.CreateClothMesh(rows, columns, extent);
+        mesh = Utility.CreateClothMesh(rows, columns);
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
+        transform.hasChanged = false;
+        worldToLocalMat = transform.worldToLocalMatrix;
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
@@ -80,8 +80,10 @@ public class ClothSimulator : MonoBehaviour {
 
         // step 1-3: initialize position, velocity and weight
         for (int i = 0; i < numParticles; i++) {
-            positions[i] = baseVertices[i];
-            projectedPositions[i] = baseVertices[i];
+            Vector3 t1 = baseVertices[i];
+            Vector3 temp = transform.TransformPoint(baseVertices[i]);
+            positions[i] = temp;
+            projectedPositions[i] = positions[i];
             velocities[i] = Vector3.zero;
             frictions[i] = 1;
         }
@@ -208,16 +210,18 @@ public class ClothSimulator : MonoBehaviour {
     }
 
     void Update () {
-        if (Input.GetKeyDown(KeyCode.Space)) {
-            print(mesh.triangles.Length);
-            for (int i = 0; i < mesh.triangles.Length; i++) {
-                print(mesh.triangles[i]);
-
-            }
-        }
-
         // TODO: set dt to deltaTime for now. change this later for more customization
         float dt = Time.deltaTime;
+
+        // modify data to world coordinates
+        for (int i = 0; i < numParticles; i++) {
+            positions[i] = transform.TransformPoint(positions[i]);
+            projectedPositions[i] = transform.TransformPoint(projectedPositions[i]);
+            velocities[i] = transform.TransformVector(velocities[i]);
+        }
+
+        transform.hasChanged = false;
+        worldToLocalMat = transform.worldToLocalMatrix;
 
         // step 5: apply external forces
         ApplyExternalForce(gravity, dt);
@@ -248,6 +252,13 @@ public class ClothSimulator : MonoBehaviour {
 
         // step 16: update all velocities using friction
         ApplyFriction();
+
+        // modify data to back to local coordinates
+        for (int i = 0; i < numParticles; i++) {
+            positions[i] = transform.InverseTransformPoint(positions[i]);
+            projectedPositions[i] = transform.InverseTransformPoint(projectedPositions[i]);
+            velocities[i] = transform.InverseTransformVector(velocities[i]);
+        }
 
         // update everything into Unity
         mesh.vertices = positions;

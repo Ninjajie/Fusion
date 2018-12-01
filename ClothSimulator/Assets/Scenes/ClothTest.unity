@@ -321,8 +321,8 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 367515091}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -2.55}
-  m_LocalScale: {x: 1.5, y: 1, z: 1.5}
+  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 37713299}
   m_Father: {fileID: 0}
@@ -341,7 +341,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timestep: 0.02
   iterationNum: 5
-  vertexMass: 1
+  vertexMass: 4
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 15
   columns: 15
@@ -387,7 +387,7 @@ SphereCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
+  m_Radius: 0.53
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &681380442
 MeshRenderer:
@@ -438,7 +438,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 681380440}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -3.66, z: -0.49}
+  m_LocalPosition: {x: 0, y: -5.51, z: -3.69}
   m_LocalScale: {x: 4.471861, y: 4.471861, z: 4.471861}
   m_Children: []
   m_Father: {fileID: 0}

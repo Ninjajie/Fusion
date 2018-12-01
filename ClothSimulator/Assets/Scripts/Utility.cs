@@ -77,9 +77,9 @@ public static class Utility {
     // 0 --- 1 --- 2 --- 3 --- 4 --- 5 --- 6 --- 7 --- 8 --- 9 --- 10
     // width is the number of blocks across. height is the number of blocks down.
     // starting position dictates the starting position of vertex 1
-    public static Mesh CreateClothMesh(int rows, int columns, Vector2 size) {
-        Vector2 vertexDist = new Vector2(size.x / columns, size.y / rows);
-        Vector3 offset = new Vector3(size.x / 2, 0, size.y / 2);
+    public static Mesh CreateClothMesh(int rows, int columns) {
+        Vector2 vertexDist = new Vector2(10f / columns, 10f / rows);
+        Vector3 offset = new Vector3(5f, 0, 5f);
         int numVertices = (rows + 1) * (columns + 1);
         int numTris = rows * columns * 2;
         Vector3[] vertices = new Vector3[numVertices];
