@@ -27,7 +27,6 @@ public class ClothSimulator : MonoBehaviour {
     public BendingMethod bendingMethod;
 
     // simulation data
-    private Matrix4x4 worldToLocalMat;
     private Vector3[] positions; 
     private Vector3[] projectedPositions;
     private Vector3[] velocities;
@@ -53,7 +52,6 @@ public class ClothSimulator : MonoBehaviour {
         mesh = Utility.CreateClothMesh(rows, columns);
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
         transform.hasChanged = false;
-        worldToLocalMat = transform.worldToLocalMatrix;
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
@@ -80,9 +78,7 @@ public class ClothSimulator : MonoBehaviour {
 
         // step 1-3: initialize position, velocity and weight
         for (int i = 0; i < numParticles; i++) {
-            Vector3 t1 = baseVertices[i];
-            Vector3 temp = transform.TransformPoint(baseVertices[i]);
-            positions[i] = temp;
+            positions[i] = transform.TransformPoint(baseVertices[i]); 
             projectedPositions[i] = positions[i];
             velocities[i] = Vector3.zero;
             frictions[i] = 1;
@@ -221,7 +217,6 @@ public class ClothSimulator : MonoBehaviour {
         }
 
         transform.hasChanged = false;
-        worldToLocalMat = transform.worldToLocalMatrix;
 
         // step 5: apply external forces
         ApplyExternalForce(gravity, dt);
@@ -365,15 +360,33 @@ public class ClothSimulator : MonoBehaviour {
                 }
                 else if (colliders[j].GetType() == typeof(BoxCollider)) {
                     Vector3 extent = 0.5f * colliders[j].GetComponent<BoxCollider>().size;
-                    Vector3 localPosition = colliders[j].transform.InverseTransformPoint(positions[i]);
                     Vector3 localProjectedPosition = colliders[j].transform.InverseTransformPoint(projectedPositions[i]);
                     if (Utility.IsPointInCube(localProjectedPosition, extent)) {
                         collided = true;
+                        Vector3 localPosition = colliders[j].transform.InverseTransformPoint(positions[i]);
                         collisionConstraints.Add(new CubeCollisionConstraint(i, localPosition, localProjectedPosition, extent, colliders[j].transform));
                     }
                 }
                 else if (colliders[j].GetType() == typeof(CapsuleCollider)) {
                     // TODO
+                }
+                else if (colliders[j].GetType() == typeof(MeshCollider)) {
+                    Ray r = new Ray(positions[i], (projectedPositions[i] - positions[i]).normalized);
+                    float maxDist = (projectedPositions[i] - positions[i]).magnitude;
+                    RaycastHit hitInfo;
+                    if (colliders[j].Raycast(r, out hitInfo, maxDist)) {
+                        collided = true;
+                        Mesh mesh = colliders[j].GetComponent<MeshCollider>().sharedMesh;
+                        int[] vertexIndices = {
+                            mesh.triangles[hitInfo.triangleIndex * 3],
+                            mesh.triangles[hitInfo.triangleIndex * 3 + 1],
+                            mesh.triangles[hitInfo.triangleIndex * 3 + 2] };
+                        Vector3[] triangleVertices = {
+                            colliders[j].transform.TransformPoint(mesh.vertices[vertexIndices[0]]),
+                            colliders[j].transform.TransformPoint(mesh.vertices[vertexIndices[1]]),
+                            colliders[j].transform.TransformPoint(mesh.vertices[vertexIndices[2]]) };
+                        collisionConstraints.Add(new MeshCollisionConstraint(i, hitInfo.point, hitInfo.normal, triangleVertices));
+                    }
                 }
 
                 if (collided) { 

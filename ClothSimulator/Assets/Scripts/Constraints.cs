@@ -287,32 +287,32 @@ public class CubeCollisionConstraint : Constraint {
         cubeExtent = extent;
         cubeTransform = transform;
 
-        int intersectionAxis = 0;
-        for (int i = 0; i < 3; i++) {
-            if (Mathf.Abs(localPosition[i]) > extent[i] && Mathf.Abs(localProjectedPosition[i]) <= extent[i]){
-                intersectionAxis = i;
-                break;
-            }
-        }
+        //int intersectionAxis = 0;
+        //for (int i = 0; i < 3; i++) {
+        //    if (Mathf.Abs(localPosition[i]) > extent[i] && Mathf.Abs(localProjectedPosition[i]) <= extent[i]){
+        //        intersectionAxis = i;
+        //        break;
+        //    }
+        //}
 
-        float[] pos = new float[3];
-        float[] norm = new float[3];
-        for (int i = 0; i < 3; i++) {
-            if (i == intersectionAxis) {
-                norm[i] = Mathf.Sign(localPosition[i] - localProjectedPosition[i]);
-                pos[i] = extent[i] * norm[i];
-            }
-            else {
-                norm[i] = 0;
-                pos[i] = 0.5f * (localPosition[i] + localProjectedPosition[i]);
-            }
-        }
+        //float[] pos = new float[3];
+        //float[] norm = new float[3];
+        //for (int i = 0; i < 3; i++) {
+        //    if (i == intersectionAxis) {
+        //        norm[i] = Mathf.Sign(localPosition[i] - localProjectedPosition[i]);
+        //        pos[i] = extent[i] * norm[i];
+        //    }
+        //    else {
+        //        norm[i] = 0;
+        //        pos[i] = 0.5f * (localPosition[i] + localProjectedPosition[i]);
+        //    }
+        //}
 
-        collisionPosition = new Vector3(pos[0], pos[1], pos[2]);
-        collisionPosition = cubeTransform.TransformPoint(collisionPosition);
+        //collisionPosition = new Vector3(pos[0], pos[1], pos[2]);
+        //collisionPosition = cubeTransform.TransformPoint(collisionPosition);
 
-        collisionNormal = new Vector3(norm[0], norm[1], norm[2]);
-        collisionNormal = cubeTransform.TransformDirection(collisionNormal);
+        //collisionNormal = new Vector3(norm[0], norm[1], norm[2]);
+        //collisionNormal = cubeTransform.TransformDirection(collisionNormal);
     }
 
     public override void Satisfy(Vector3[] projectedPositions, float mass) {
@@ -342,6 +342,31 @@ public class CubeCollisionConstraint : Constraint {
             Vector3 closestPos = new Vector3(newPos[0], newPos[1], newPos[2]);
             closestPos = cubeTransform.TransformPoint(closestPos);
             projectedPositions[vertexIndex] = closestPos;
+        }
+    }
+
+}
+
+public class MeshCollisionConstraint : Constraint {
+    private int vertexIndex;
+    private Vector3 collisionPosition;
+    private Vector3 collisionNormal;
+    private Vector3[] triangleVertices;
+
+    public MeshCollisionConstraint(int index, Vector3 position, Vector3 normal, Vector3[] vertices) {
+        vertexIndex = index;
+        collisionPosition = position;
+        collisionNormal = normal;
+        triangleVertices = vertices;
+    }
+
+    public override void Satisfy(Vector3[] projectedPositions, float mass) {
+        Vector3 p = projectedPositions[vertexIndex];
+        float cp = Vector3.Dot(p - collisionPosition, collisionNormal);
+
+        if (cp < 0) { // if constraint violated, project the constraint
+            float distToTriangle = Vector3.Dot(triangleVertices[0] - p, collisionNormal);
+            projectedPositions[vertexIndex] = p + (distToTriangle + 0.001f) * collisionNormal;
         }
     }
 
