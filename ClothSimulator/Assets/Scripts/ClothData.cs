@@ -3,6 +3,10 @@ using System.Linq;
 using System.Collections.Generic;
 
 
+// ******************************************************
+// *********** CPU side data structures *****************
+// ******************************************************
+
 public class Triangle {
     public int[] vertices;
 
@@ -37,3 +41,30 @@ public class EdgeComparer : EqualityComparer<Edge> {
 public enum DampingMethod { noDamping, simpleDamping, smartDamping }
 public enum BendingMethod { noBending, DihedralBending, isometricBending }
 public enum PointConstraintType { none, topRow, topCorners, leftRow, leftCorners, custom }
+
+
+// ******************************************************
+// *********** GPU side data structures *****************
+// ******************************************************
+
+// TODO: might not need this at all. can just use setvector
+struct VectorStruct {
+    public Vector3 data;
+}
+
+struct UInt3Struct {
+    public uint deltaXInt;
+    public uint deltaYInt;
+    public uint deltaZInt;
+}
+
+struct EdgeStruct {
+    public int startIndex;
+    public int endIndex;
+};
+
+struct DistanceConstraintStruct {
+    public EdgeStruct edge;
+    public float restLength;
+    public float weight;
+};

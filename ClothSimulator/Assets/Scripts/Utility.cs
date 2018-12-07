@@ -113,6 +113,16 @@ public static class Utility {
         return newMesh;
     }
 
+    public static Mesh DeepCopyMesh(Mesh mesh) {
+        Mesh newMesh = new Mesh();
+        newMesh.vertices = mesh.vertices;
+        newMesh.triangles = mesh.triangles;
+        newMesh.RecalculateBounds();
+        newMesh.RecalculateNormals();
+        newMesh.RecalculateTangents();
+        return newMesh;
+    }
+
     public static Vector2 GetMeshExtent(Mesh mesh, Vector3 scale) {
         float maxX = float.MinValue;
         float maxZ = float.MinValue;

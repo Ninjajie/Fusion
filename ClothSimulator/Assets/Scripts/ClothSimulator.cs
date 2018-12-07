@@ -57,7 +57,8 @@ public class ClothSimulator : MonoBehaviour {
     private void Start () {
         // create new mesh
         mesh = Utility.CreateClothMesh(rows, columns);
-        transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
+        mesh.MarkDynamic();
+        transform.GetComponent<MeshFilter>().mesh = mesh;
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
@@ -67,19 +68,8 @@ public class ClothSimulator : MonoBehaviour {
         velocities = new Vector3[numParticles];
         frictions = new float[numParticles];
 
-        // make new mesh for the opposite side
-        GameObject newCloth = Instantiate(transform.GetChild(0).gameObject, transform);
-        newCloth.name = "Back";
-        reverseMesh = transform.GetChild(1).GetComponent<MeshFilter>().mesh;
-        for (int m = 0; m < reverseMesh.subMeshCount; m++) {
-            int[] triangles = reverseMesh.GetTriangles(m);
-            for (int i = 0; i < triangles.Length; i += 3) {
-                int temp = triangles[i + 0];
-                triangles[i + 0] = triangles[i + 1];
-                triangles[i + 1] = temp;
-            }
-            reverseMesh.SetTriangles(triangles, m);
-        }
+        // create a new mesh for the opposite side
+        CreateBackSide();
 
         // step 1-3: initialize position, velocity and weight
         for (int i = 0; i < numParticles; i++) {
@@ -102,15 +92,13 @@ public class ClothSimulator : MonoBehaviour {
         AddDistanceConstraints();
 
         AddPointConstraints();
-            
+
         if (bendingMethod != BendingMethod.noBending) {
             AddBendingConstraints();
         }
 
-        mesh.MarkDynamic();
-        reverseMesh.MarkDynamic();
     }
-
+    
 
     private void Update () {
         // modify data to world coordinates
@@ -186,10 +174,31 @@ public class ClothSimulator : MonoBehaviour {
         }
         reverseMesh.normals = reverseNormals;
 
-        transform.GetChild(0).GetComponent<MeshCollider>().sharedMesh = mesh;
-        transform.GetChild(1).GetComponent<MeshCollider>().sharedMesh = reverseMesh;
+        //print(Time.deltaTime + ", " + iter);
+    }
 
-        print(Time.deltaTime + ", " + iter);
+
+    private void CreateBackSide() {
+        GameObject newCloth = new GameObject("back");
+        newCloth.transform.parent = transform;
+        newCloth.transform.localPosition = Vector3.zero;
+        newCloth.AddComponent<MeshRenderer>();
+        newCloth.GetComponent<MeshRenderer>().material = GetComponent<MeshRenderer>().material;
+        newCloth.AddComponent<MeshFilter>();
+        reverseMesh = Utility.DeepCopyMesh(mesh);
+        reverseMesh.MarkDynamic();
+
+        // reverse the triangle order
+        for (int m = 0; m < reverseMesh.subMeshCount; m++) {
+            int[] triangles = reverseMesh.GetTriangles(m);
+            for (int i = 0; i < triangles.Length; i += 3) {
+                int temp = triangles[i + 0];
+                triangles[i + 0] = triangles[i + 1];
+                triangles[i + 1] = temp;
+            }
+            reverseMesh.SetTriangles(triangles, m);
+        }
+        newCloth.GetComponent<MeshFilter>().mesh = reverseMesh;
     }
 
 
