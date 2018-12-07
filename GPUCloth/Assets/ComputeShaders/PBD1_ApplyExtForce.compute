@@ -27,7 +27,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 	// read current particles from buffer
 	PointElement p = pointElements[id.x];
 	// define gravity
-	float3 gravityAccel = float3(0, -9.8, 0);
+	float3 gravityAccel = float3(0, -4.8, 0);
 	// read position & velocity
 	float3 position = p.worldPosition;
 	float3 velocity = p.worldVelocity;

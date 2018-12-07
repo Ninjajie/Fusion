@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/Scenes/ClothTest.unity
+- path: Assets/Scenes/ClothBaloon.unity
   isLoaded: 1
   isActive: 1

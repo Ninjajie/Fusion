@@ -114,7 +114,7 @@ public class ClothGPU : MonoBehaviour
     public int iterationNum = 10;
 
     // constraint weights
-    public float distanceWeight = 0.8f;
+    public float distanceWeight = 1.8f;
 
     // collision sphere
     public float[] center;
@@ -341,7 +341,7 @@ public class ClothGPU : MonoBehaviour
         //Debug.Log(deltaPosArray[0].deltaX);
         //Debug.Log(deltaCounterArray[0]);
 
-        SatisfyPointConstraints(120,110);
+        SatisfyPointConstraints(0,3100);
 
         UpdatePosVel();
 
@@ -394,7 +394,7 @@ public class ClothGPU : MonoBehaviour
         //solvingConstraints.SetFloat("radius", radius);
         //solvingConstraints.SetFloats("center", center);
 
-        for(int index = 0; index < 10; index++)
+        for(int index = 0; index < 20; index++)
         {
 
 

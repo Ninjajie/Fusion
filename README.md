@@ -1,6 +1,10 @@
 # Fusion
 Unity Physics on GPU
 
+## Interactive Fluid Demo
+![](DemoImages/fluid1.gif)
+--------------------------------
+
 ## Week 1 - 11/19/2018
 Jie - Compute Shader Pipeline Setup and test
 

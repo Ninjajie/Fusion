@@ -211,7 +211,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 37713294}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalPosition: {x: 0, y: -15.9, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -326,7 +326,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 881066961}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -8.92, z: 0}
+  m_LocalPosition: {x: 0, y: -44.5, z: 0}
   m_LocalScale: {x: 3.2112584, y: 1, z: 2.9357193}
   m_Children: []
   m_Father: {fileID: 0}
@@ -356,6 +356,7 @@ GameObject:
   - component: {fileID: 891378981}
   - component: {fileID: 891378980}
   - component: {fileID: 891378984}
+  - component: {fileID: 891378985}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
@@ -442,6 +443,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sphereTransform: {fileID: 891378983}
+--- !u!114 &891378985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 891378979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38488a9c142e74a46abcaeaa35102548, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 0
+  pointConstraintIndex1: 110
+  pointConstraintIndex2: 120
+  applyExtForce: {fileID: 7200000, guid: 5e120a4c57074a24786e25811870a8ef, type: 3}
+  dampVelocity: {fileID: 7200000, guid: 15a6c276a08e60443871773e920ec2db, type: 3}
+  positionPrediction: {fileID: 7200000, guid: 28f6a4e4876ff2b498a9571c93092652, type: 3}
+  solvingConstraints: {fileID: 7200000, guid: 0f865c2b4fa4c60499f7e81726418d0e, type: 3}
+  pointConstraints: {fileID: 7200000, guid: 10d526f3c4c15f84bb62cb1d25256508, type: 3}
+  updatePosVel: {fileID: 7200000, guid: ceab4ede951c8624f886dbd0cd17278f, type: 3}
+  DistanceConstraintsOn: 1
+  iterationNum: 10
+  distanceWeight: 0.8
+  center: []
+  radius: 1
+  sphereTransform: {fileID: 0}
+  planeTransform: {fileID: 0}
 --- !u!1 &1326018001
 GameObject:
   m_ObjectHideFlags: 0
