@@ -5,6 +5,7 @@ using UnityEngine;
 public class ClothSimulator : MonoBehaviour {
     // simulation variables
     public float timestep = 0.02f;
+    private float nextFrameTime = 0f;
     public int iterationNum = 5;
     public float vertexMass = 2;
     public Vector3 gravity;
@@ -210,9 +211,6 @@ public class ClothSimulator : MonoBehaviour {
 
 
     void Update () {
-        // TODO: set dt to deltaTime for now. change this later for more customization
-        float dt = Time.deltaTime;
-
         // modify data to world coordinates
         for (int i = 0; i < numParticles; i++) {
             positions[i] = transform.TransformPoint(positions[i]);
@@ -220,35 +218,48 @@ public class ClothSimulator : MonoBehaviour {
             velocities[i] = transform.TransformVector(velocities[i]);
         }
 
-        // step 5: apply external forces
-        ApplyExternalForce(gravity, dt);
+        // calculate the timestep 
+        nextFrameTime += Time.deltaTime;
+        int iter = 0;
+        while (nextFrameTime > 0) {
+            if (nextFrameTime < timestep) {
+                break;
+            }
 
-        // step 6: damp velocity
-        if (dampingMethod != DampingMethod.noDamping) {
-            DampVelocity(dampingStiffness, dampingMethod);
+            float dt = Mathf.Min(nextFrameTime, timestep);
+            nextFrameTime -= dt;
+            iter++;
+
+            // step 5: apply external forces
+            ApplyExternalForce(gravity, dt);
+
+            // step 6: damp velocity
+            if (dampingMethod != DampingMethod.noDamping) {
+                DampVelocity(dampingStiffness, dampingMethod);
+            }
+
+            // step 7: apply explicit Euler to positions based on velocity
+            ApplyExplicitEuler(dt);
+
+            // step 8: TODO: clear current collisions and generate new collisions
+            ClearCollisionConstraints();
+            GenerateCollisionConstraints();
+
+            // step 9-11: project constraints iterationNum times
+            for (int j = 0; j < iterationNum; j++) {
+                // satisfy all constraints
+                SatisfyConstraints();
+            }
+
+            // satisfy pointConstraints
+            SatisfyPointConstraints(dt);
+
+            // step 13 & 14: apply projected positions to actual vertices
+            UpdateVertices(dt);
+
+            // step 16: update all velocities using friction
+            ApplyFriction();
         }
-
-        // step 7: apply explicit Euler to positions based on velocity
-        ApplyExplicitEuler(dt);
-
-        // step 8: TODO: clear current collisions and generate new collisions
-        ClearCollisionConstraints();
-        GenerateCollisionConstraints();    
-
-        // step 9-11: project constraints iterationNum times
-        for (int j = 0; j < iterationNum; j++) {
-            // satisfy all constraints
-            SatisfyConstraints();
-        }
-
-        // satisfy pointConstraints
-        SatisfyPointConstraints(dt); 
-
-        // step 13 & 14: apply projected positions to actual vertices
-        UpdateVertices(dt);
-
-        // step 16: update all velocities using friction
-        ApplyFriction();
 
         // recalculate the center of the mesh
         Vector3 newCenter = GetComponentInChildren<Renderer>().bounds.center;
@@ -275,6 +286,8 @@ public class ClothSimulator : MonoBehaviour {
 
         transform.GetChild(0).GetComponent<MeshCollider>().sharedMesh = mesh;
         transform.GetChild(1).GetComponent<MeshCollider>().sharedMesh = reverseMesh;
+
+        print(Time.deltaTime + ", " + iter);
     }
 
     public void ApplyExternalForce(Vector3 gravity, float dt) {

@@ -212,7 +212,7 @@ GameObject:
   - component: {fileID: 237793800}
   - component: {fileID: 237793799}
   - component: {fileID: 237793803}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -321,7 +321,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 367515091}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: 2}
+  m_LocalPosition: {x: 0, y: 2.39, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 37713299}
@@ -339,12 +339,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f354542fede16cb498d1ff7d8c8d8d63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timestep: 0.02
-  iterationNum: 5
-  vertexMass: 2
+  timestep: 0.01
+  iterationNum: 3
+  vertexMass: 1
   gravity: {x: 0, y: -9.81, z: 0}
-  rows: 15
-  columns: 15
+  rows: 20
+  columns: 20
   useSmartDamping: 1
   distanceCompressionStiffness: 1
   distanceStretchStiffness: 1
@@ -370,13 +370,14 @@ GameObject:
   - component: {fileID: 681380443}
   - component: {fileID: 681380442}
   - component: {fileID: 681380441}
-  m_Layer: 0
+  - component: {fileID: 681380445}
+  m_Layer: 9
   m_Name: Sphere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!135 &681380441
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -438,12 +439,24 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 681380440}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -6.7, z: -3.69}
+  m_LocalPosition: {x: 0, y: -2.63, z: -3.69}
   m_LocalScale: {x: 4.471861, y: 4.471861, z: 4.471861}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &681380445
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 681380440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f359bbc3dd2e11c498c2da15a18b91fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  target: {fileID: 367515091}
 --- !u!1001 &752197791
 Prefab:
   m_ObjectHideFlags: 0
@@ -607,7 +620,7 @@ GameObject:
   - component: {fileID: 988402394}
   - component: {fileID: 988402393}
   m_Layer: 0
-  m_Name: Sphere001 (1)
+  m_Name: Rock
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -756,7 +769,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1326018001}
   m_LocalRotation: {x: -0.04266366, y: 0.95141584, z: -0.1543284, w: -0.26300302}
-  m_LocalPosition: {x: 6.17, y: 0.52, z: 10.32}
+  m_LocalPosition: {x: 6.17, y: 3.4, z: 17}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
