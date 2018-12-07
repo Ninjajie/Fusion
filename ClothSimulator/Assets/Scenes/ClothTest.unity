@@ -321,7 +321,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 367515091}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalPosition: {x: 0, y: -0.5, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 37713299}
@@ -341,14 +341,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timestep: 0.02
   iterationNum: 5
-  vertexMass: 4
+  vertexMass: 2
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 15
   columns: 15
   useSmartDamping: 1
   distanceCompressionStiffness: 1
   distanceStretchStiffness: 1
-  bendingStiffness: 0.01
+  bendingStiffness: 0.005
   dampingMethod: 2
   dampingStiffness: 0.01
   usePointConstraint: 1
@@ -376,7 +376,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!135 &681380441
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -387,7 +387,7 @@ SphereCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.53
+  m_Radius: 0.55
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &681380442
 MeshRenderer:
@@ -438,7 +438,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 681380440}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -5.51, z: -3.69}
+  m_LocalPosition: {x: 0, y: -6.7, z: -3.69}
   m_LocalScale: {x: 4.471861, y: 4.471861, z: 4.471861}
   m_Children: []
   m_Father: {fileID: 0}
@@ -485,7 +485,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 100002, guid: fa0a723e3534aca47bcf60641f2f3a8d, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 400002, guid: fa0a723e3534aca47bcf60641f2f3a8d, type: 3}
       propertyPath: m_LocalScale.x

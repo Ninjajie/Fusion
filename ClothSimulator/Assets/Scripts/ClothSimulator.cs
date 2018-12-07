@@ -51,7 +51,6 @@ public class ClothSimulator : MonoBehaviour {
         // create new mesh
         mesh = Utility.CreateClothMesh(rows, columns);
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = mesh;
-        transform.hasChanged = false;
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
@@ -78,7 +77,8 @@ public class ClothSimulator : MonoBehaviour {
 
         // step 1-3: initialize position, velocity and weight
         for (int i = 0; i < numParticles; i++) {
-            positions[i] = transform.TransformPoint(baseVertices[i]); 
+            //positions[i] = transform.TransformPoint(baseVertices[i]); 
+            positions[i] = baseVertices[i];
             projectedPositions[i] = positions[i];
             velocities[i] = Vector3.zero;
             frictions[i] = 1;
@@ -203,7 +203,11 @@ public class ClothSimulator : MonoBehaviour {
         if (useGroundConstraint) {
             ground = new GroundConstraint(groundPlane);
         }
+
+        mesh.MarkDynamic();
+        reverseMesh.MarkDynamic();
     }
+
 
     void Update () {
         // TODO: set dt to deltaTime for now. change this later for more customization
@@ -215,8 +219,6 @@ public class ClothSimulator : MonoBehaviour {
             projectedPositions[i] = transform.TransformPoint(projectedPositions[i]);
             velocities[i] = transform.TransformVector(velocities[i]);
         }
-
-        transform.hasChanged = false;
 
         // step 5: apply external forces
         ApplyExternalForce(gravity, dt);
@@ -248,12 +250,17 @@ public class ClothSimulator : MonoBehaviour {
         // step 16: update all velocities using friction
         ApplyFriction();
 
+        // recalculate the center of the mesh
+        Vector3 newCenter = GetComponentInChildren<Renderer>().bounds.center;
+        Vector3 delta = newCenter - transform.position;
+
         // modify data to back to local coordinates
         for (int i = 0; i < numParticles; i++) {
-            positions[i] = transform.InverseTransformPoint(positions[i]);
-            projectedPositions[i] = transform.InverseTransformPoint(projectedPositions[i]);
-            velocities[i] = transform.InverseTransformVector(velocities[i]);
+            positions[i] = transform.InverseTransformPoint(positions[i] - delta);
+            projectedPositions[i] = transform.InverseTransformPoint(projectedPositions[i] - delta);
+            velocities[i] = transform.InverseTransformVector(velocities[i] - delta);
         }
+        transform.position = newCenter;
 
         // update everything into Unity
         mesh.vertices = positions;
