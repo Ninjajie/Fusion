@@ -218,7 +218,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &237793799
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -345,20 +345,16 @@ MonoBehaviour:
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 20
   columns: 20
-  useSmartDamping: 1
   distanceCompressionStiffness: 1
   distanceStretchStiffness: 1
   bendingStiffness: 0.005
+  bendingMethod: 2
   dampingMethod: 2
   dampingStiffness: 0.01
-  usePointConstraint: 1
-  groundPlane: -2
-  useGroundConstraint: 0
-  useDistanceConstraint: 1
-  bendingMethod: 2
-  collisionLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
+  pointConstraintType: 2
+  pointConstraintCustomIndices: 
+  collidableObjects:
+  - {fileID: 237793798}
 --- !u!1 &681380440
 GameObject:
   m_ObjectHideFlags: 0

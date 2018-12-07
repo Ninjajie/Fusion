@@ -286,33 +286,6 @@ public class CubeCollisionConstraint : Constraint {
         vertexIndex = index;
         cubeExtent = extent;
         cubeTransform = transform;
-
-        //int intersectionAxis = 0;
-        //for (int i = 0; i < 3; i++) {
-        //    if (Mathf.Abs(localPosition[i]) > extent[i] && Mathf.Abs(localProjectedPosition[i]) <= extent[i]){
-        //        intersectionAxis = i;
-        //        break;
-        //    }
-        //}
-
-        //float[] pos = new float[3];
-        //float[] norm = new float[3];
-        //for (int i = 0; i < 3; i++) {
-        //    if (i == intersectionAxis) {
-        //        norm[i] = Mathf.Sign(localPosition[i] - localProjectedPosition[i]);
-        //        pos[i] = extent[i] * norm[i];
-        //    }
-        //    else {
-        //        norm[i] = 0;
-        //        pos[i] = 0.5f * (localPosition[i] + localProjectedPosition[i]);
-        //    }
-        //}
-
-        //collisionPosition = new Vector3(pos[0], pos[1], pos[2]);
-        //collisionPosition = cubeTransform.TransformPoint(collisionPosition);
-
-        //collisionNormal = new Vector3(norm[0], norm[1], norm[2]);
-        //collisionNormal = cubeTransform.TransformDirection(collisionNormal);
     }
 
     public override void Satisfy(Vector3[] projectedPositions, float mass) {
