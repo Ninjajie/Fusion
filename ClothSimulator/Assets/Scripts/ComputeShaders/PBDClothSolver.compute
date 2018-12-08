@@ -1,14 +1,33 @@
-﻿// Uniform data
+﻿// struct declarations
+struct EdgeStruct {
+	int startIndex;
+	int endIndex;
+};
+
+struct DistanceConstraintStruct {
+	EdgeStruct edge;
+	float restLength;
+};
+
+// Uniform data
 uint numParticles;
-uint numEdges;
+uint numDistanceConstraints;
+uint numPointConstraints;
 float3 gravity;
 float invMass;
 float dt;
+float stretchStiffness;
+float compressionStiffness;
 
 // Buffer data
 RWStructuredBuffer<float3> positions;
 RWStructuredBuffer<float3> projectedPositions;
 RWStructuredBuffer<float3> velocities;
+RWStructuredBuffer<float3> deltaPos;
+RWStructuredBuffer<uint3> deltaPosAsInt;
+RWStructuredBuffer<int> deltaCount;
+StructuredBuffer<DistanceConstraintStruct> distanceConstraints;
+StructuredBuffer<int> pointConstraints;
 
 
 // ---------------------------------------------------------------
@@ -17,7 +36,7 @@ RWStructuredBuffer<float3> velocities;
 
 #pragma kernel ApplyExternalForces
 
-[numthreads(8,1,1)] // TODO: play around with numthread size
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
 void ApplyExternalForces(uint3 id : SV_DispatchThreadID){
 	if (id.x >= numParticles) return;
 
@@ -59,20 +78,110 @@ void ApplyExplicitEuler(uint3 id : SV_DispatchThreadID) {
 // -------------- Step 9-11: Project Constraints -----------------
 // ---------------------------------------------------------------
 
-
 #pragma kernel ProjectConstraintDeltas
+
+// helper function for atomic add
+void AtomicAddDelta(int indexIntoDeltaPos, float newDeltaVal, int axis) {
+	uint i_val = asuint(newDeltaVal);
+	uint tmp0 = 0;
+	uint tmp1;
+
+	[allow_uav_condition]
+	while (true) {
+		InterlockedCompareExchange(deltaPosAsInt[indexIntoDeltaPos][axis], tmp0, i_val, tmp1);
+
+		if (tmp1 == tmp0) {
+			break;
+		}
+
+		tmp0 = tmp1;
+		i_val = asuint(newDeltaVal + asfloat(tmp1));
+	}
+
+	return;
+}
+
+
 [numthreads(8, 1, 1)] // TODO: play around with numthread size
-void ProjectConstraintDeltas(uint3 id : SV_DispatchThreadID)
-{
-	// TODO: insert actual code here!
+void ProjectConstraintDeltas(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numDistanceConstraints) return;
+
+	// read data from the current distance constraint
+	DistanceConstraintStruct d = distanceConstraints[id.x];
+	int startIndex = d.edge.startIndex;
+	int endIndex = d.edge.endIndex;
+	float restLength = d.restLength;
+
+	// atomic add the number of constraints to deltaCount buffer
+	InterlockedAdd(deltaCount[startIndex], 1);
+	InterlockedAdd(deltaCount[endIndex], 1);
+
+	// Calculate Deltas
+	// get positions
+	float3 pi = projectedPositions[startIndex];
+	float3 pj = projectedPositions[endIndex];
+	// make edge vector
+	float3 n = pi - pj;
+	// get current length
+	float L = length(n);
+
+	// normalize edge vector
+	if (L >= 1e-7) {
+		n = normalize(n);
+	}
+	float wi = invMass;
+	float wj = invMass;
+	float stiffness = L < restLength ? compressionStiffness : stretchStiffness;
+
+	float3 deltaPosPI = -stiffness * wi / (wi + wj) * (L - restLength) * n; //Minus
+	float3 deltaPosPJ = stiffness * wj / (wi + wj) * (L - restLength) * n; //Plus
+
+	AtomicAddDelta(startIndex, deltaPosPI.x, 0);
+	AtomicAddDelta(startIndex, deltaPosPI.y, 1);
+	AtomicAddDelta(startIndex, deltaPosPI.z, 2);
+
+	AtomicAddDelta(endIndex, deltaPosPJ.x, 0);
+	AtomicAddDelta(endIndex, deltaPosPJ.y, 1);
+	AtomicAddDelta(endIndex, deltaPosPJ.z, 2);
 }
 
 
 #pragma kernel AverageConstraintDeltas
 [numthreads(8, 1, 1)] // TODO: play around with numthread size
-void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID)
-{
-	// TODO: insert actual code here!
+void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+	int index = id.x;
+
+	if (deltaCount[index] > 0) {
+		deltaPos[index].x = asfloat(deltaPosAsInt[index].x);
+		deltaPos[index].y = asfloat(deltaPosAsInt[index].y);
+		deltaPos[index].z = asfloat(deltaPosAsInt[index].z);
+
+		deltaPos[index] /= deltaCount[index];
+	}
+
+	projectedPositions[index] += deltaPos[index] * 1.5f;
+
+	// reset delta buffers to zero
+	deltaPos[index].x = 0.0f;
+	deltaPos[index].y = 0.0f;
+	deltaPos[index].z = 0.0f;
+
+	deltaPosAsInt[index].x = 0;
+	deltaPosAsInt[index].y = 0;
+	deltaPosAsInt[index].z = 0;
+
+	deltaCount[index] = 0;
+}
+
+
+#pragma kernel SatisfyPointConstraints
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void SatisfyPointConstraints(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numPointConstraints) return;
+	
+	int index = pointConstraints[id.x];
+	projectedPositions[index] = positions[index];
 }
 
 

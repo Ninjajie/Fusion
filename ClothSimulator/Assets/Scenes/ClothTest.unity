@@ -657,7 +657,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timestep: 0.02
-  iterationNum: 5
+  iterationNum: 1
   vertexMass: 1
   gravity: {x: 0, y: -9.81, z: 0}
   rows: 10
@@ -668,7 +668,7 @@ MonoBehaviour:
   bendingMethod: 0
   dampingMethod: 1
   dampingStiffness: 0.02
-  pointConstraintType: 0
+  pointConstraintType: 2
   pointConstraintCustomIndices: 
   collidableObjects: []
   PBDClothSolver: {fileID: 7200000, guid: 8be10bd717e91154da13742e44654f2c, type: 3}
@@ -721,13 +721,13 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1399422931}
-  m_LocalRotation: {x: 0.34948957, y: -0, z: -0, w: 0.93694025}
-  m_LocalPosition: {x: 0, y: 2.39, z: 2}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 10
-  m_LocalEulerAnglesHint: {x: 40.912003, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1523094612
 GameObject:
   m_ObjectHideFlags: 0

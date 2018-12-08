@@ -61,6 +61,4 @@ struct EdgeStruct {
 struct DistanceConstraintStruct {
     public EdgeStruct edge;
     public float restLength;
-    public float compressionStiffness;
-    public float stretchStiffNess;
 };

@@ -38,15 +38,11 @@ public class DistanceConstraint : Constraint {
 
         float wi = mass;
         float wj = mass;
+        float stiffness = d < restLength ? compressionStiffness : stretchStiffness;
 
-        Vector3 corr = n * (d - restLength) / (wi + wj);
-        corr *= d < restLength ? compressionStiffness : stretchStiffness;
-
-        //projectedPositions[edge.startIndex] = pi + wi * corr;
-        //projectedPositions[edge.endIndex] = pi - wi * corr;
-        projectedPositions[edge.startIndex] = pi - compressionStiffness * wi
+        projectedPositions[edge.startIndex] = pi - stiffness * wi
                                               / (wi + wj) * (d - restLength) * n;
-        projectedPositions[edge.endIndex] = pj + compressionStiffness * wj
+        projectedPositions[edge.endIndex] = pj + stiffness * wj
                                               / (wi + wj) * (d - restLength) * n;
     }
 }
