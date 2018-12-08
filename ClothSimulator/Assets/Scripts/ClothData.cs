@@ -40,7 +40,7 @@ public class EdgeComparer : EqualityComparer<Edge> {
 
 public enum DampingMethod { noDamping, simpleDamping, smartDamping }
 public enum BendingMethod { noBending, DihedralBending, isometricBending }
-public enum PointConstraintType { none, topRow, topCorners, leftRow, leftCorners, custom }
+public enum PointConstraintType { none, topRow, topCorners, leftRow, leftCorners }
 
 
 // ******************************************************

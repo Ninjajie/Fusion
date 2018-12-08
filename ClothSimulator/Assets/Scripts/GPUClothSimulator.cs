@@ -45,8 +45,8 @@ public class GPUClothSimulator : MonoBehaviour {
     private float[] frictions;
     private float invMass;
     private int numParticles;
-    private int numDistanceConstraints, numPointConstraints;
-    private int numCollidableSpheres, numCollidableCubes;
+    private int numDistanceConstraints;
+    private int numCollidableSpheres, numCollidableCubes, numPointConstraints;
     // TODO: can we remove the following 3?
     private Vector3[] deltaPositionArray;    // The array that stores all the deltas
     private int[] deltaCounterArray;              // The array to initialize delta count buffer
@@ -143,7 +143,6 @@ public class GPUClothSimulator : MonoBehaviour {
 
         // add constraints
         AddDistanceConstraints();
-        AddPointConstraints();
         //AddBendingConstraints();
 
         // modify positions to world coordinates before calculating constraint restlengths
@@ -310,46 +309,39 @@ public class GPUClothSimulator : MonoBehaviour {
 
 
     private void AddPointConstraints() {
-        if (pointConstraintType == PointConstraintType.none) {
-            numPointConstraints = 0;
-            return;
-        }
-        else {
-            if (pointConstraintType == PointConstraintType.topCorners) {
-                pointConstraints = new int[2];
-                pointConstraints[0] = rows * (columns + 1);
-                pointConstraints[1] = (rows + 1) * (columns + 1) - 1;
-            }
-            else if (pointConstraintType == PointConstraintType.topRow) {
-                pointConstraints = new int[columns + 1];
-                for (int i = 0; i <= columns; i++) {
-                    pointConstraints[i] = rows * (columns + 1) + i;
-                }
-            }
-            else if (pointConstraintType == PointConstraintType.leftCorners) {
-                pointConstraints = new int[2];
-                pointConstraints[0] = 0;
-                pointConstraints[1] = rows * (columns + 1);
-            }
-            else if (pointConstraintType == PointConstraintType.leftRow) {
-                pointConstraints = new int[columns + 1];
-                for (int i = 0; i <= columns; i++) {
-                    pointConstraints[i] = i * (columns + 1);
-                }
-            }
-            else if (pointConstraintType == PointConstraintType.custom) {
-                pointConstraints = new int[pointConstraintCustomIndices.Length];
-                for (int i = 0; i < pointConstraintCustomIndices.Length; i++) {
-                    int index = pointConstraintCustomIndices[i];
-                    if (index >= 0 && index < numParticles) {
-                        pointConstraints[i] = index;
-                    }
-                }
-            }
+        List<int> points = new List<int>();
 
-            numPointConstraints = pointConstraints.Length;
+        if (pointConstraintType == PointConstraintType.topCorners) {
+            points.Add(rows * (columns + 1));
+            points.Add((rows + 1) * (columns + 1) - 1);
         }
-        
+        else if (pointConstraintType == PointConstraintType.topRow) {
+            for (int i = 0; i <= columns; i++) {
+                points.Add(rows * (columns + 1) + i);
+            }
+        }
+        else if (pointConstraintType == PointConstraintType.leftCorners) {
+            points.Add(0);
+            points.Add(rows * (columns + 1));
+        }
+        else if (pointConstraintType == PointConstraintType.leftRow) {
+            for (int i = 0; i <= columns; i++) {
+                points.Add(i * (columns + 1));
+            }
+        }
+
+        for (int i = 0; i < pointConstraintCustomIndices.Length; i++) {
+            int index = pointConstraintCustomIndices[i];
+            if (index >= 0 && index < numParticles) {
+                points.Add(index);
+            }
+        }
+
+        numPointConstraints = points.Count;
+        pointConstraints = new int[numPointConstraints];
+        for (int i = 0; i < numPointConstraints; i++) {
+            pointConstraints[i] = points[i];
+        }
     }
 
     private void SetupComputeBuffers() {
@@ -380,6 +372,7 @@ public class GPUClothSimulator : MonoBehaviour {
         updatePositionsKernel = PBDClothSolver.FindKernel("UpdatePositions");
         satisfySphereCollisionsKernel = PBDClothSolver.FindKernel("SatisfySphereCollisions");
         satisfyCubeCollisionsKernel = PBDClothSolver.FindKernel("SatisfyCubeCollisions");
+        satisfyPointConstraintsKernel = PBDClothSolver.FindKernel("SatisfyPointConstraints");
 
 
         // set uniform data for kernels
@@ -414,18 +407,6 @@ public class GPUClothSimulator : MonoBehaviour {
         numGroups_Vertices = Mathf.CeilToInt((float)numParticles / workGroupSize);
         numGroups_DistanceConstraints = Mathf.CeilToInt((float)numDistanceConstraints / workGroupSize);
 
-        // set up point constraint info
-        if (numPointConstraints > 0) {
-            pointConstraintsBuffer = new ComputeBuffer(numPointConstraints, sizeof(int));
-            pointConstraintsBuffer.SetData(pointConstraints);
-            satisfyPointConstraintsKernel = PBDClothSolver.FindKernel("SatisfyPointConstraints");
-            PBDClothSolver.SetInt("numPointConstraints", numPointConstraints);
-
-            PBDClothSolver.SetBuffer(satisfyPointConstraintsKernel, "positions", positionsBuffer);
-            PBDClothSolver.SetBuffer(satisfyPointConstraintsKernel, "projectedPositions", projectedPositionsBuffer);
-            PBDClothSolver.SetBuffer(satisfyPointConstraintsKernel, "pointConstraints", pointConstraintsBuffer);
-            numGroups_PointConstraints = Mathf.CeilToInt((float)numPointConstraints / workGroupSize);
-        }
     }
 
 
@@ -484,6 +465,20 @@ public class GPUClothSimulator : MonoBehaviour {
             PBDClothSolver.SetInt("numCollidableCubes", numCollidableCubes);
             PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
             PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "collidableCubes", collidableCubesBuffer);
+        }
+
+        // create compute buffer for point constraints
+        AddPointConstraints();
+        if (pointConstraintsBuffer != null) pointConstraintsBuffer.Release();
+
+        if (numPointConstraints > 0) {
+            pointConstraintsBuffer = new ComputeBuffer(numPointConstraints, sizeof(int));
+            pointConstraintsBuffer.SetData(pointConstraints);
+            PBDClothSolver.SetInt("numPointConstraints", numPointConstraints);
+            PBDClothSolver.SetBuffer(satisfyPointConstraintsKernel, "positions", positionsBuffer);
+            PBDClothSolver.SetBuffer(satisfyPointConstraintsKernel, "projectedPositions", projectedPositionsBuffer);
+            PBDClothSolver.SetBuffer(satisfyPointConstraintsKernel, "pointConstraints", pointConstraintsBuffer);
+            numGroups_PointConstraints = Mathf.CeilToInt((float)numPointConstraints / workGroupSize);
         }
 
     }

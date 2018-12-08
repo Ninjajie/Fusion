@@ -157,7 +157,7 @@ public class ClothSimulator : MonoBehaviour {
         Vector3 newCenter = Vector3.zero;
         Vector3 delta = Vector3.zero;
         // recalculate the center of the mesh
-        if (pointConstraintType == PointConstraintType.none) {
+        if (pointConstraintType == PointConstraintType.none && pointConstraintCustomIndices.Length == 0) {
             newCenter = GetComponentInChildren<Renderer>().bounds.center;
             delta = newCenter - transform.position;
         }
@@ -169,7 +169,9 @@ public class ClothSimulator : MonoBehaviour {
             velocities[i] = transform.InverseTransformVector(velocities[i]);
         }
 
-        if (pointConstraintType == PointConstraintType.none) transform.position = newCenter;
+        if (pointConstraintType == PointConstraintType.none && pointConstraintCustomIndices.Length == 0) {
+            transform.position = newCenter;
+        }
 
         // update everything into Unity
         mesh.vertices = positions;
@@ -455,10 +457,7 @@ public class ClothSimulator : MonoBehaviour {
 
 
     private void AddPointConstraints() {
-        if (pointConstraintType == PointConstraintType.none) {
-            return;
-        }
-        else if (pointConstraintType == PointConstraintType.topCorners) {
+        if (pointConstraintType == PointConstraintType.topCorners) {
             pointConstraints.Add(new PointConstraint(rows * (columns + 1)));
             pointConstraints.Add(new PointConstraint((rows + 1) * (columns + 1) - 1));
         }
@@ -476,12 +475,11 @@ public class ClothSimulator : MonoBehaviour {
                 pointConstraints.Add(new PointConstraint(i * (columns + 1)));
             }
         }
-        else if (pointConstraintType == PointConstraintType.custom) {
-            for (int i = 0; i < pointConstraintCustomIndices.Length; i++) {
-                int index = pointConstraintCustomIndices[i];
-                if (index >= 0 && index < numParticles) {
-                    pointConstraints.Add(new PointConstraint(index));
-                }
+
+        for (int i = 0; i < pointConstraintCustomIndices.Length; i++) {
+            int index = pointConstraintCustomIndices[i];
+            if (index >= 0 && index < numParticles) {
+                pointConstraints.Add(new PointConstraint(index));
             }
         }
     }

@@ -772,7 +772,7 @@ MonoBehaviour:
   dampingMethod: 2
   dampingStiffness: 0.01
   pointConstraintType: 2
-  pointConstraintCustomIndices: 
+  pointConstraintCustomIndices: 14000000
   collidableObjects:
   - {fileID: 681380440}
 --- !u!23 &1523094615
@@ -953,7 +953,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &2033210138
 BoxCollider:
   m_ObjectHideFlags: 0
