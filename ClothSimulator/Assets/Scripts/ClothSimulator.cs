@@ -46,7 +46,6 @@ public class ClothSimulator : MonoBehaviour {
     private List<Constraint> constraints = new List<Constraint>();
     private List<Constraint> collisionConstraints = new List<Constraint>();
     private List<PointConstraint> pointConstraints = new List<PointConstraint>();
-    private GroundConstraint ground = null;
     private int numParticles;
 
     // unity data
@@ -73,7 +72,6 @@ public class ClothSimulator : MonoBehaviour {
 
         // step 1-3: initialize position, velocity and weight
         for (int i = 0; i < numParticles; i++) {
-            //positions[i] = transform.TransformPoint(baseVertices[i]); 
             positions[i] = baseVertices[i];
             projectedPositions[i] = positions[i];
             velocities[i] = Vector3.zero;
@@ -88,15 +86,20 @@ public class ClothSimulator : MonoBehaviour {
             triangles[i] = new Triangle(triangleIndices[i * 3], triangleIndices[i * 3 + 1], triangleIndices[i * 3 + 2]);
         }
 
-        // add constraints
-        AddDistanceConstraints();
-
-        AddPointConstraints();
-
-        if (bendingMethod != BendingMethod.noBending) {
-            AddBendingConstraints();
+        // modify positions to world coordinates before calculating constraint restlengths
+        for (int i = 0; i < numParticles; i++) {
+            positions[i] = transform.TransformPoint(positions[i]);
         }
 
+        // add constraints
+        AddDistanceConstraints();
+        AddPointConstraints();
+        AddBendingConstraints();
+
+        // modify positions to world coordinates before calculating constraint restlengths
+        for (int i = 0; i < numParticles; i++) {
+            positions[i] = transform.InverseTransformPoint(positions[i]);
+        }
     }
     
 
@@ -159,7 +162,7 @@ public class ClothSimulator : MonoBehaviour {
         for (int i = 0; i < numParticles; i++) {
             positions[i] = transform.InverseTransformPoint(positions[i] - delta);
             projectedPositions[i] = transform.InverseTransformPoint(projectedPositions[i] - delta);
-            velocities[i] = transform.InverseTransformVector(velocities[i] - delta);
+            velocities[i] = transform.InverseTransformVector(velocities[i]);
         }
         transform.position = newCenter;
 
@@ -182,6 +185,8 @@ public class ClothSimulator : MonoBehaviour {
         GameObject newCloth = new GameObject("back");
         newCloth.transform.parent = transform;
         newCloth.transform.localPosition = Vector3.zero;
+        newCloth.transform.localRotation = Quaternion.identity;
+        newCloth.transform.localScale = new Vector3(1, 1, 1);
         newCloth.AddComponent<MeshRenderer>();
         newCloth.GetComponent<MeshRenderer>().material = GetComponent<MeshRenderer>().material;
         newCloth.AddComponent<MeshFilter>();
@@ -281,6 +286,8 @@ public class ClothSimulator : MonoBehaviour {
     private void GenerateCollisionConstraints() {
         for (int i = 0; i < numParticles; i++) {
             for (int j = 0; j < collidableObjects.Length; j++) {
+                if (!collidableObjects[j].activeSelf) continue;
+
                 bool collided = false;
                 Collider collider = collidableObjects[j].GetComponent<Collider>();
 
@@ -350,6 +357,10 @@ public class ClothSimulator : MonoBehaviour {
 
 
     private void AddBendingConstraints() {
+        if (bendingMethod != BendingMethod.noBending) {
+            return;
+        }
+
         Dictionary<Edge, List<Triangle>> wingEdges = new Dictionary<Edge, List<Triangle>>(new EdgeComparer());
 
         // map edges to all of the faces to which they are connected
@@ -491,11 +502,6 @@ public class ClothSimulator : MonoBehaviour {
         // then satisfy collision constraints
         for (int i = 0; i < collisionConstraints.Count; i++) {
             collisionConstraints[i].Satisfy(projectedPositions, invMass);
-        }
-
-        //finally, satisfy ground constraints
-        if (ground != null) {
-            ground.Satisfy(projectedPositions, velocities);
         }
     }
 

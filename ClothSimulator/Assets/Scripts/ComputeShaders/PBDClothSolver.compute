@@ -1,0 +1,95 @@
+﻿// Uniform data
+uint numParticles;
+uint numEdges;
+float3 gravity;
+float invMass;
+float dt;
+
+// Buffer data
+RWStructuredBuffer<float3> positions;
+RWStructuredBuffer<float3> projectedPositions;
+RWStructuredBuffer<float3> velocities;
+
+
+// ---------------------------------------------------------------
+// --------------- Step 5: Apply External Forces -----------------
+// ---------------------------------------------------------------
+
+#pragma kernel ApplyExternalForces
+
+[numthreads(8,1,1)] // TODO: play around with numthread size
+void ApplyExternalForces(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+
+	float3 velocity = velocities[id.x] + gravity * invMass * dt;
+	velocities[id.x] = velocity;
+}
+
+
+// ---------------------------------------------------------------
+// ------------------ Step 6: Damp Velocities --------------------
+// ---------------------------------------------------------------
+
+#pragma kernel DampVelocities
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void DampVelocities(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+
+	float3 velocity = velocities[id.x];
+	velocities[id.x] = velocity * 0.998f;
+}
+
+
+// ---------------------------------------------------------------
+// --------------- Step 7: Apply Explicit Euler ------------------
+// ---------------------------------------------------------------
+
+#pragma kernel ApplyExplicitEuler
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void ApplyExplicitEuler(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numParticles) return;
+
+	projectedPositions[id.x] = positions[id.x] + velocities[id.x] * dt;
+}
+
+
+// ---------------------------------------------------------------
+// -------------- Step 9-11: Project Constraints -----------------
+// ---------------------------------------------------------------
+
+
+#pragma kernel ProjectConstraintDeltas
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void ProjectConstraintDeltas(uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+}
+
+
+#pragma kernel AverageConstraintDeltas
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+}
+
+
+// ---------------------------------------------------------------
+// --------- Step 13-14: Update Velocities and Position ----------
+// ---------------------------------------------------------------
+
+
+#pragma kernel UpdatePositions
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void UpdatePositions(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+
+	velocities[id.x] = (projectedPositions[id.x] - positions[id.x]) / dt;
+	positions[id.x] = projectedPositions[id.x];
+}
+
+
+

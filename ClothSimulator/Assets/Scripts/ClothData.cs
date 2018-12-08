@@ -47,11 +47,6 @@ public enum PointConstraintType { none, topRow, topCorners, leftRow, leftCorners
 // *********** GPU side data structures *****************
 // ******************************************************
 
-// TODO: might not need this at all. can just use setvector
-struct VectorStruct {
-    public Vector3 data;
-}
-
 struct UInt3Struct {
     public uint deltaXInt;
     public uint deltaYInt;
@@ -66,5 +61,6 @@ struct EdgeStruct {
 struct DistanceConstraintStruct {
     public EdgeStruct edge;
     public float restLength;
-    public float weight;
+    public float compressionStiffness;
+    public float stretchStiffNess;
 };
