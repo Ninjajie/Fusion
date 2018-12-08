@@ -62,3 +62,8 @@ struct DistanceConstraintStruct {
     public EdgeStruct edge;
     public float restLength;
 };
+
+struct CollidableSphereStruct {
+    public Vector3 center;
+    public float radius;
+}

@@ -9,9 +9,15 @@ struct DistanceConstraintStruct {
 	float restLength;
 };
 
+struct CollidableSphereStruct {
+	float3 center;
+	float radius;
+};
+
 // Uniform data
 uint numParticles;
 uint numDistanceConstraints;
+uint numCollidableSpheres;
 uint numPointConstraints;
 float3 gravity;
 float invMass;
@@ -27,6 +33,7 @@ RWStructuredBuffer<float3> deltaPos;
 RWStructuredBuffer<uint3> deltaPosAsInt;
 RWStructuredBuffer<int> deltaCount;
 StructuredBuffer<DistanceConstraintStruct> distanceConstraints;
+StructuredBuffer<CollidableSphereStruct> collidableSpheres;
 StructuredBuffer<int> pointConstraints;
 
 
@@ -172,6 +179,25 @@ void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID){
 	deltaPosAsInt[index].z = 0;
 
 	deltaCount[index] = 0;
+}
+
+
+#pragma kernel SatisfySphereCollisions
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void SatisfySphereCollisions(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numParticles) return;
+
+	for (uint i = 0; i < numCollidableSpheres; i++) {
+		float3 position = positions[id.x];
+		float3 projectedPosition = projectedPositions[id.x];
+		float3 center = collidableSpheres[i].center;
+		float radius = collidableSpheres[i].radius;
+
+		if (length(projectedPosition - center) < radius) {
+			float3 n = normalize(projectedPosition - center);
+			projectedPositions[id.x] = center + n * (radius + 0.01f);
+		}
+	}
 }
 
 

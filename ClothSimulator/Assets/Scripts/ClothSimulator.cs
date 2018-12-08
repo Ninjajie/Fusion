@@ -153,10 +153,14 @@ public class ClothSimulator : MonoBehaviour {
             // step 16: update all velocities using friction
             ApplyFriction();
         }
-        
+
+        Vector3 newCenter = Vector3.zero;
+        Vector3 delta = Vector3.zero;
         // recalculate the center of the mesh
-        Vector3 newCenter = GetComponentInChildren<Renderer>().bounds.center;
-        Vector3 delta = newCenter - transform.position;
+        if (pointConstraintType == PointConstraintType.none) {
+            newCenter = GetComponentInChildren<Renderer>().bounds.center;
+            delta = newCenter - transform.position;
+        }
 
         // modify data to back to local coordinates
         for (int i = 0; i < numParticles; i++) {
@@ -164,7 +168,8 @@ public class ClothSimulator : MonoBehaviour {
             projectedPositions[i] = transform.InverseTransformPoint(projectedPositions[i] - delta);
             velocities[i] = transform.InverseTransformVector(velocities[i]);
         }
-        transform.position = newCenter;
+
+        if (pointConstraintType == PointConstraintType.none) transform.position = newCenter;
 
         // update everything into Unity
         mesh.vertices = positions;

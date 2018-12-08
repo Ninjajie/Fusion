@@ -44,7 +44,9 @@ public class GPUClothSimulator : MonoBehaviour {
     private Vector3[] velocities;
     private float[] frictions;
     private float invMass;
-    private int numParticles, numDistanceConstraints, numPointConstraints;
+    private int numParticles;
+    private int numDistanceConstraints, numPointConstraints;
+    private int numCollidableSpheres;
     // TODO: can we remove the following 3?
     private Vector3[] deltaPositionArray;    // The array that stores all the deltas
     private int[] deltaCounterArray;              // The array to initialize delta count buffer
@@ -65,6 +67,7 @@ public class GPUClothSimulator : MonoBehaviour {
     private ComputeBuffer deltaPositionsUIntBuffer;
     private ComputeBuffer deltaCounterBuffer;
     private ComputeBuffer distanceConstraintsBuffer;
+    private ComputeBuffer collidableSpheresBuffer;
     private ComputeBuffer pointConstraintsBuffer;
 
     // kernel IDs
@@ -74,6 +77,7 @@ public class GPUClothSimulator : MonoBehaviour {
     private int projectConstraintDeltasKernel;
     private int averageConstraintDeltasKernel;
     private int satisfyPointConstraintsKernel;
+    private int satisfySphereCollisionsKernel;
     private int updatePositionsKernel;
 
     // num of work groups
@@ -193,13 +197,16 @@ public class GPUClothSimulator : MonoBehaviour {
             PBDClothSolver.Dispatch(applyExplicitEulerKernel, numGroups_Vertices, 1, 1);
 
             // step 8: clear current collisions and generate new collisions
-            //ClearCollisionConstraints();
-            //GenerateCollisionConstraints();
+            SetupCollisionComputeBuffers();
 
             // step 9-11: project constraints iterationNum times
             for (int j = 0; j < iterationNum; j++) {
+                // distance constraints
                 PBDClothSolver.Dispatch(projectConstraintDeltasKernel, numGroups_DistanceConstraints, 1, 1);
                 PBDClothSolver.Dispatch(averageConstraintDeltasKernel, numGroups_Vertices, 1, 1);
+
+                // collision constraints
+                PBDClothSolver.Dispatch(satisfySphereCollisionsKernel, numGroups_Vertices, 1, 1);
             }
 
             // satisfy pointConstraints
@@ -219,15 +226,20 @@ public class GPUClothSimulator : MonoBehaviour {
         velocitiesBuffer.GetData(velocities);
 
         // recalculate the center of the mesh
-        Vector3 newCenter = GetComponentInChildren<Renderer>().bounds.center;
-        Vector3 delta = newCenter - transform.position;
+        Vector3 newCenter = Vector3.zero;
+        Vector3 delta = Vector3.zero;
+        if (pointConstraintType == PointConstraintType.none) {
+            newCenter = GetComponentInChildren<Renderer>().bounds.center;
+            delta = newCenter - transform.position;
+        }
 
         // modify data to back to local coordinates
         for (int i = 0; i < numParticles; i++) {
             positions[i] = transform.InverseTransformPoint(positions[i] - delta);
             velocities[i] = transform.InverseTransformVector(velocities[i]);
         }
-        transform.position = newCenter;
+
+        if (pointConstraintType == PointConstraintType.none) transform.position = newCenter;
 
         // update everything into Unity
         mesh.vertices = positions;
@@ -409,29 +421,69 @@ public class GPUClothSimulator : MonoBehaviour {
         }
     }
 
+
+    private void SetupCollisionComputeBuffers() {
+        List<GameObject> spheres = new List<GameObject>();
+        List<GameObject> cubes = new List<GameObject>();
+
+        // categorize all the collidable objects
+        for (int j = 0; j < collidableObjects.Length; j++) {
+            if (!collidableObjects[j].activeSelf) continue;
+
+            Collider collider = collidableObjects[j].GetComponent<Collider>();
+
+            if (collider.GetType() == typeof(SphereCollider)) {
+                spheres.Add(collidableObjects[j]);
+            }
+            else if (collider.GetType() == typeof(BoxCollider)) {
+                cubes.Add(collidableObjects[j]);
+            }
+        }
+
+        // create the compute buffers for each type of collidable objects
+        CollidableSphereStruct[] collidableSpheres = new CollidableSphereStruct[spheres.Count];
+        numCollidableSpheres = spheres.Count;
+        for (int i = 0; i < numCollidableSpheres; i++) {
+            collidableSpheres[i].center = spheres[i].transform.position + spheres[i].GetComponent<SphereCollider>().center;
+            collidableSpheres[i].radius = spheres[i].transform.lossyScale.x * spheres[i].GetComponent<SphereCollider>().radius;
+        }
+        if (collidableSpheresBuffer != null) collidableSpheresBuffer.Release();
+        collidableSpheresBuffer = new ComputeBuffer(numCollidableSpheres, sizeof(float) * 4);
+
+        // fill buffers with initial data
+        collidableSpheresBuffer.SetData(collidableSpheres);
+        PBDClothSolver.SetInt("numCollidableSpheres", numCollidableSpheres);
+
+        // identify the kernels
+        satisfySphereCollisionsKernel = PBDClothSolver.FindKernel("SatisfySphereCollisions");
+
+        // set uniform data for kernels
+        PBDClothSolver.SetInt("numCollidableSpheres", collidableSpheres.Length);
+
+        // bind buffer data to each kernel
+        PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "positions", positionsBuffer);
+        PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
+        PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "collidableSpheres", collidableSpheresBuffer);
+    }
+
+
     private void OnDestroy() {
-        if (positionsBuffer != null)
-            positionsBuffer.Release();
+        if (positionsBuffer != null) positionsBuffer.Release();
 
-        if (projectedPositionsBuffer != null)
-            projectedPositionsBuffer.Release();
+        if (projectedPositionsBuffer != null) projectedPositionsBuffer.Release();
 
-        if (velocitiesBuffer != null)
-            velocitiesBuffer.Release();
+        if (velocitiesBuffer != null) velocitiesBuffer.Release();
 
-        if (deltaPositionsBuffer != null)
-            deltaPositionsBuffer.Release();
+        if (deltaPositionsBuffer != null) deltaPositionsBuffer.Release();
 
-        if (deltaPositionsUIntBuffer != null)
-            deltaPositionsUIntBuffer.Release();
+        if (deltaPositionsUIntBuffer != null) deltaPositionsUIntBuffer.Release();
 
-        if (deltaCounterBuffer != null)
-            deltaCounterBuffer.Release();
+        if (deltaCounterBuffer != null) deltaCounterBuffer.Release();
 
-        if (distanceConstraintsBuffer != null)
-            distanceConstraintsBuffer.Release();
+        if (distanceConstraintsBuffer != null) distanceConstraintsBuffer.Release();
 
-        if (pointConstraintsBuffer != null)
-            pointConstraintsBuffer.Release();
+        if (pointConstraintsBuffer != null) pointConstraintsBuffer.Release();
+
+        if (collidableSpheresBuffer != null) collidableSpheresBuffer.Release();
     }
 }
