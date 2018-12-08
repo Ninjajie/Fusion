@@ -193,7 +193,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 237793798}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -5.92, z: -0.17}
+  m_LocalPosition: {x: 0, y: -5.35, z: -0.17}
   m_LocalScale: {x: 31.67029, y: 1.1207359, z: 31.383745}
   m_Children: []
   m_Father: {fileID: 0}
@@ -229,7 +229,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!135 &681380441
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -671,7 +671,8 @@ MonoBehaviour:
   pointConstraintType: 2
   pointConstraintCustomIndices: 
   collidableObjects:
-  - {fileID: 681380440}
+  - {fileID: 237793798}
+  - {fileID: 2033210137}
   PBDClothSolver: {fileID: 7200000, guid: 8be10bd717e91154da13742e44654f2c, type: 3}
   workGroupSize: 8
 --- !u!23 &1399422933
@@ -952,7 +953,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &2033210138
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -963,7 +964,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.05, y: 1.05, z: 1.05}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &2033210139
 MeshRenderer:
@@ -1014,8 +1015,8 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2033210137}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -4.98, z: -3.84}
-  m_LocalScale: {x: 4.5051, y: 4.5051, z: 4.5051}
+  m_LocalPosition: {x: 0, y: -6.45, z: -3.84}
+  m_LocalScale: {x: 4, y: 10, z: 4}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4

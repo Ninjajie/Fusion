@@ -275,8 +275,6 @@ public class CubeCollisionConstraint : Constraint {
     private int vertexIndex;
     private Vector3 cubeExtent;
     private Transform cubeTransform;
-    private Vector3 collisionPosition;
-    private Vector3 collisionNormal;
 
     public CubeCollisionConstraint(int index, Vector3 localPosition, Vector3 localProjectedPosition, Vector3 extent, Transform transform) {
         vertexIndex = index;

@@ -46,18 +46,15 @@ public class GPUClothSimulator : MonoBehaviour {
     private float invMass;
     private int numParticles;
     private int numDistanceConstraints, numPointConstraints;
-    private int numCollidableSpheres;
+    private int numCollidableSpheres, numCollidableCubes;
     // TODO: can we remove the following 3?
     private Vector3[] deltaPositionArray;    // The array that stores all the deltas
     private int[] deltaCounterArray;              // The array to initialize delta count buffer
     private UInt3Struct[] deltaPosUintArray;      // The array to initialize deltaposInt buffer
 
     // constraints
-    //private List<Constraint> constraints = new List<Constraint>();
-    //private List<Constraint> collisionConstraints = new List<Constraint>();
     private DistanceConstraintStruct[] distanceConstraints;
     private int[] pointConstraints;
-    //private List<PointConstraint> pointConstraints = new List<PointConstraint>();
 
     // compute buffers
     private ComputeBuffer positionsBuffer;
@@ -68,6 +65,7 @@ public class GPUClothSimulator : MonoBehaviour {
     private ComputeBuffer deltaCounterBuffer;
     private ComputeBuffer distanceConstraintsBuffer;
     private ComputeBuffer collidableSpheresBuffer;
+    private ComputeBuffer collidableCubesBuffer;
     private ComputeBuffer pointConstraintsBuffer;
 
     // kernel IDs
@@ -78,6 +76,7 @@ public class GPUClothSimulator : MonoBehaviour {
     private int averageConstraintDeltasKernel;
     private int satisfyPointConstraintsKernel;
     private int satisfySphereCollisionsKernel;
+    private int satisfyCubeCollisionsKernel;
     private int updatePositionsKernel;
 
     // num of work groups
@@ -206,7 +205,12 @@ public class GPUClothSimulator : MonoBehaviour {
                 PBDClothSolver.Dispatch(averageConstraintDeltasKernel, numGroups_Vertices, 1, 1);
 
                 // collision constraints
-                PBDClothSolver.Dispatch(satisfySphereCollisionsKernel, numGroups_Vertices, 1, 1);
+                if (numCollidableSpheres > 0) {
+                    PBDClothSolver.Dispatch(satisfySphereCollisionsKernel, numGroups_Vertices, 1, 1);
+                }
+                if (numCollidableCubes > 0) {
+                    PBDClothSolver.Dispatch(satisfyCubeCollisionsKernel, numGroups_Vertices, 1, 1);
+                }
             }
 
             // satisfy pointConstraints
@@ -374,6 +378,9 @@ public class GPUClothSimulator : MonoBehaviour {
         projectConstraintDeltasKernel = PBDClothSolver.FindKernel("ProjectConstraintDeltas");
         averageConstraintDeltasKernel = PBDClothSolver.FindKernel("AverageConstraintDeltas");
         updatePositionsKernel = PBDClothSolver.FindKernel("UpdatePositions");
+        satisfySphereCollisionsKernel = PBDClothSolver.FindKernel("SatisfySphereCollisions");
+        satisfyCubeCollisionsKernel = PBDClothSolver.FindKernel("SatisfyCubeCollisions");
+
 
         // set uniform data for kernels
         PBDClothSolver.SetInt("numParticles", numParticles);
@@ -440,7 +447,7 @@ public class GPUClothSimulator : MonoBehaviour {
             }
         }
 
-        // create the compute buffers for each type of collidable objects
+        // create the compute buffer for spheres
         CollidableSphereStruct[] collidableSpheres = new CollidableSphereStruct[spheres.Count];
         numCollidableSpheres = spheres.Count;
         for (int i = 0; i < numCollidableSpheres; i++) {
@@ -448,22 +455,37 @@ public class GPUClothSimulator : MonoBehaviour {
             collidableSpheres[i].radius = spheres[i].transform.lossyScale.x * spheres[i].GetComponent<SphereCollider>().radius;
         }
         if (collidableSpheresBuffer != null) collidableSpheresBuffer.Release();
-        collidableSpheresBuffer = new ComputeBuffer(numCollidableSpheres, sizeof(float) * 4);
 
-        // fill buffers with initial data
-        collidableSpheresBuffer.SetData(collidableSpheres);
-        PBDClothSolver.SetInt("numCollidableSpheres", numCollidableSpheres);
+        if (numCollidableSpheres > 0) {
+            collidableSpheresBuffer = new ComputeBuffer(numCollidableSpheres, sizeof(float) * 4);
+            // fill buffers with initial data
+            collidableSpheresBuffer.SetData(collidableSpheres);
+            PBDClothSolver.SetInt("numCollidableSpheres", numCollidableSpheres);
+            PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
+            PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "collidableSpheres", collidableSpheresBuffer);
+        }
 
-        // identify the kernels
-        satisfySphereCollisionsKernel = PBDClothSolver.FindKernel("SatisfySphereCollisions");
+        // create the compute buffer for cubes
+        CollidableCubeStruct[] collidableCubes = new CollidableCubeStruct[cubes.Count];
+        numCollidableCubes = cubes.Count;
+        for (int i = 0; i < numCollidableCubes; i++) {
+            collidableCubes[i].center = cubes[i].transform.position + cubes[i].GetComponent<BoxCollider>().center;
+            float extent_x = cubes[i].transform.lossyScale.x * cubes[i].GetComponent<BoxCollider>().size.x / 2f;
+            float extent_y = cubes[i].transform.lossyScale.y * cubes[i].GetComponent<BoxCollider>().size.y / 2f;
+            float extent_z = cubes[i].transform.lossyScale.z * cubes[i].GetComponent<BoxCollider>().size.z / 2f;
+            collidableCubes[i].extent = new Vector3(extent_x, extent_y, extent_z);
+        }
+        if (collidableCubesBuffer != null) collidableCubesBuffer.Release();
 
-        // set uniform data for kernels
-        PBDClothSolver.SetInt("numCollidableSpheres", collidableSpheres.Length);
+        if (numCollidableCubes > 0) {
+            collidableCubesBuffer = new ComputeBuffer(numCollidableCubes, sizeof(float) * 6);
+            // fill buffers with initial data
+            collidableCubesBuffer.SetData(collidableCubes);
+            PBDClothSolver.SetInt("numCollidableCubes", numCollidableCubes);
+            PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
+            PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "collidableCubes", collidableCubesBuffer);
+        }
 
-        // bind buffer data to each kernel
-        PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "positions", positionsBuffer);
-        PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
-        PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "collidableSpheres", collidableSpheresBuffer);
     }
 
 
@@ -485,5 +507,8 @@ public class GPUClothSimulator : MonoBehaviour {
         if (pointConstraintsBuffer != null) pointConstraintsBuffer.Release();
 
         if (collidableSpheresBuffer != null) collidableSpheresBuffer.Release();
+
+        if (collidableCubesBuffer != null) collidableCubesBuffer.Release();
+
     }
 }

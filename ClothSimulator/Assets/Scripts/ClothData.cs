@@ -67,3 +67,8 @@ struct CollidableSphereStruct {
     public Vector3 center;
     public float radius;
 }
+
+struct CollidableCubeStruct {
+    public Vector3 center;
+    public Vector3 extent;
+}

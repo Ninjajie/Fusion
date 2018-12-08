@@ -14,10 +14,16 @@ struct CollidableSphereStruct {
 	float radius;
 };
 
+struct CollidableCubeStruct {
+	float3 center;
+	float3 extent;
+};
+
 // Uniform data
 uint numParticles;
 uint numDistanceConstraints;
 uint numCollidableSpheres;
+uint numCollidableCubes;
 uint numPointConstraints;
 float3 gravity;
 float invMass;
@@ -34,6 +40,7 @@ RWStructuredBuffer<uint3> deltaPosAsInt;
 RWStructuredBuffer<int> deltaCount;
 StructuredBuffer<DistanceConstraintStruct> distanceConstraints;
 StructuredBuffer<CollidableSphereStruct> collidableSpheres;
+StructuredBuffer<CollidableCubeStruct> collidableCubes;
 StructuredBuffer<int> pointConstraints;
 
 
@@ -187,17 +194,64 @@ void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID){
 void SatisfySphereCollisions(uint3 id : SV_DispatchThreadID) {
 	if (id.x >= numParticles) return;
 
+	float3 projectedPosition = projectedPositions[id.x];
 	for (uint i = 0; i < numCollidableSpheres; i++) {
-		float3 position = positions[id.x];
-		float3 projectedPosition = projectedPositions[id.x];
 		float3 center = collidableSpheres[i].center;
 		float radius = collidableSpheres[i].radius;
 
 		if (length(projectedPosition - center) < radius) {
 			float3 n = normalize(projectedPosition - center);
-			projectedPositions[id.x] = center + n * (radius + 0.01f);
+			projectedPosition = center + n * (radius + 0.01f);
 		}
 	}
+
+	projectedPositions[id.x] = projectedPosition;
+}
+
+
+#pragma kernel SatisfyCubeCollisions
+
+bool IsPointInCube(float3 position, float3 extent) {
+	return abs(position.x) < extent.x && abs(position.y) < extent.y && abs(position.z) < extent.z;
+}
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void SatisfyCubeCollisions(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numParticles) return;
+
+	float3 projectedPosition = projectedPositions[id.x];
+	
+	for (uint i = 0; i < numCollidableCubes; i++) {	
+		float3 center = collidableCubes[i].center;
+		float3 extent = collidableCubes[i].extent;
+		float3 localPosition = projectedPosition - center;
+
+		if (IsPointInCube(localPosition, extent)) {
+			int closestAxis = -1;
+			float closestDist = 99999;
+			for (int i = 0; i < 3; i++) {
+				float dist = abs(localPosition[i] - extent[i]);
+				if (dist < closestDist) {
+					closestDist = dist;
+					closestAxis = i;
+				}
+			}
+
+			float3 newPos;
+			for (int j = 0; j < 3; j++) {
+				if (j == closestAxis) {
+					newPos[j] = (extent[j] + 0.001f) * sign(localPosition[j]);
+				}
+				else {
+					newPos[j] = localPosition[j];
+				}
+			}
+
+			projectedPosition = newPos + center;
+		}
+	}
+
+	projectedPositions[id.x] = projectedPosition;
 }
 
 
