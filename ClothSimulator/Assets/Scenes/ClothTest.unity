@@ -656,19 +656,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37204f2a2fe2aaa44ad55c8f1a80f8e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timestep: 0.02
-  iterationNum: 1
+  timestep: 0.005
+  iterationNum: 3
   vertexMass: 1
   gravity: {x: 0, y: -9.81, z: 0}
-  rows: 10
-  columns: 10
-  distanceCompressionStiffness: 0.8
-  distanceStretchStiffness: 0.8
+  rows: 32
+  columns: 32
+  distanceCompressionStiffness: 1
+  distanceStretchStiffness: 1
   bendingStiffness: 0.1
   bendingMethod: 0
   dampingMethod: 1
   dampingStiffness: 0.02
-  pointConstraintType: 2
+  pointConstraintType: 1
   pointConstraintCustomIndices: 
   collidableObjects: []
   PBDClothSolver: {fileID: 7200000, guid: 8be10bd717e91154da13742e44654f2c, type: 3}

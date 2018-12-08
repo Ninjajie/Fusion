@@ -288,6 +288,7 @@ public class GPUClothSimulator : MonoBehaviour {
             edge.endIndex = e.endIndex;
             distanceConstraints[j].edge = edge;
             distanceConstraints[j].restLength = (positions[edge.startIndex] - positions[edge.endIndex]).magnitude;
+            j++;
         }
     }
 
