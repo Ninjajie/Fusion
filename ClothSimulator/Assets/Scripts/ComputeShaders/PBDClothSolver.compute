@@ -46,6 +46,7 @@ float bendingStiffness;
 RWStructuredBuffer<float3> positions;
 RWStructuredBuffer<float3> projectedPositions;
 RWStructuredBuffer<float3> velocities;
+RWStructuredBuffer<float> frictions;
 RWStructuredBuffer<float3> deltaPos;
 RWStructuredBuffer<uint3> deltaPosAsInt;
 RWStructuredBuffer<int> deltaCount;
@@ -297,6 +298,7 @@ void SatisfySphereCollisions(uint3 id : SV_DispatchThreadID) {
 		if (length(projectedPosition - center) < radius) {
 			float3 n = normalize(projectedPosition - center);
 			projectedPosition = center + n * (radius + 0.01f);
+			frictions[id.x] = 0.8f;
 		}
 	}
 
@@ -344,6 +346,7 @@ void SatisfyCubeCollisions(uint3 id : SV_DispatchThreadID) {
 			}
 
 			projectedPosition = newPos + center;
+			frictions[id.x] = 0.8f;
 		}
 	}
 
@@ -377,8 +380,9 @@ void SatisfyPointConstraints(uint3 id : SV_DispatchThreadID) {
 void UpdatePositions(uint3 id : SV_DispatchThreadID){
 	if (id.x >= numParticles) return;
 
-	velocities[id.x] = (projectedPositions[id.x] - positions[id.x]) / dt;
+	velocities[id.x] = (projectedPositions[id.x] - positions[id.x]) / dt * frictions[id.x];
 	positions[id.x] = projectedPositions[id.x];
+	frictions[id.x] = 1;
 }
 
 

@@ -73,6 +73,7 @@ public class GPUClothSimulator : MonoBehaviour {
     private ComputeBuffer collidableSpheresBuffer;
     private ComputeBuffer collidableCubesBuffer;
     private ComputeBuffer pointConstraintsBuffer;
+    private ComputeBuffer frictionsBuffer;
 
     // kernel IDs
     private int applyExternalForcesKernel;
@@ -261,6 +262,12 @@ public class GPUClothSimulator : MonoBehaviour {
                     lastMousePos = Input.mousePosition;
                     deltaPointConstraint = Vector3.zero;
                 }
+                else if (GetComponentInChildren<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
+                    int vertex = triangles[hit.triangleIndex].vertices[0];
+                    tempPointConstraint = vertex;
+                    lastMousePos = Input.mousePosition;
+                    deltaPointConstraint = Vector3.zero;
+                }
             }
             else if (Input.GetMouseButtonUp(0)) {
                 tempPointConstraint = -1;
@@ -324,6 +331,7 @@ public class GPUClothSimulator : MonoBehaviour {
         reverseMesh.normals = reverseNormals;
 
         GetComponent<MeshCollider>().sharedMesh = mesh;
+        GetComponentInChildren<MeshCollider>().sharedMesh = reverseMesh;
     }
 
 
@@ -336,6 +344,7 @@ public class GPUClothSimulator : MonoBehaviour {
         newCloth.AddComponent<MeshRenderer>();
         newCloth.GetComponent<MeshRenderer>().material = GetComponent<MeshRenderer>().material;
         newCloth.AddComponent<MeshFilter>();
+        newCloth.AddComponent<MeshCollider>();
         reverseMesh = Utility.DeepCopyMesh(mesh);
         reverseMesh.MarkDynamic();
 
@@ -350,6 +359,7 @@ public class GPUClothSimulator : MonoBehaviour {
             reverseMesh.SetTriangles(triangles, m);
         }
         newCloth.GetComponent<MeshFilter>().mesh = reverseMesh;
+        GetComponent<MeshCollider>().sharedMesh = reverseMesh;
     }
 
 
@@ -523,6 +533,7 @@ public class GPUClothSimulator : MonoBehaviour {
         positionsBuffer = new ComputeBuffer(numParticles, sizeof(float) * 3);
         projectedPositionsBuffer = new ComputeBuffer(numParticles, sizeof(float) * 3);
         velocitiesBuffer = new ComputeBuffer(numParticles, sizeof(float) * 3);
+        frictionsBuffer = new ComputeBuffer(numParticles, sizeof(float) * 3);
         deltaPositionsBuffer = new ComputeBuffer(numParticles, sizeof(float) * 3);
         deltaPositionsUIntBuffer = new ComputeBuffer(numParticles, sizeof(uint) * 3);
         deltaCounterBuffer = new ComputeBuffer(numParticles, sizeof(int));
@@ -534,6 +545,7 @@ public class GPUClothSimulator : MonoBehaviour {
         positionsBuffer.SetData(positions);
         projectedPositionsBuffer.SetData(positions);
         velocitiesBuffer.SetData(velocities);
+        frictionsBuffer.SetData(frictions);
         deltaPositionsBuffer.SetData(deltaPositionArray);
         deltaPositionsUIntBuffer.SetData(deltaPosUintArray);
         deltaCounterBuffer.SetData(deltaCounterArray);
@@ -583,6 +595,8 @@ public class GPUClothSimulator : MonoBehaviour {
         PBDClothSolver.SetBuffer(updatePositionsKernel, "positions", positionsBuffer);
         PBDClothSolver.SetBuffer(updatePositionsKernel, "projectedPositions", projectedPositionsBuffer);
         PBDClothSolver.SetBuffer(updatePositionsKernel, "velocities", velocitiesBuffer);
+        PBDClothSolver.SetBuffer(updatePositionsKernel, "frictions", frictionsBuffer);
+
 
         //calculate and set the work group size
         numGroups_Vertices = Mathf.CeilToInt((float)numParticles / workGroupSize);
@@ -626,6 +640,8 @@ public class GPUClothSimulator : MonoBehaviour {
             PBDClothSolver.SetInt("numCollidableSpheres", numCollidableSpheres);
             PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
             PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "collidableSpheres", collidableSpheresBuffer);
+            PBDClothSolver.SetBuffer(satisfySphereCollisionsKernel, "frictions", frictionsBuffer);
+
         }
 
         // create the compute buffer for cubes
@@ -647,6 +663,7 @@ public class GPUClothSimulator : MonoBehaviour {
             PBDClothSolver.SetInt("numCollidableCubes", numCollidableCubes);
             PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "projectedPositions", projectedPositionsBuffer);
             PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "collidableCubes", collidableCubesBuffer);
+            PBDClothSolver.SetBuffer(satisfyCubeCollisionsKernel, "frictions", frictionsBuffer);
         }
 
         // create compute buffer for point constraints
