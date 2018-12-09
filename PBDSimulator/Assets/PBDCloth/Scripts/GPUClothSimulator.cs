@@ -256,19 +256,18 @@ public class GPUClothSimulator : MonoBehaviour {
             if (Input.GetMouseButtonDown(0) && tempPointConstraint == -1) {
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                print(ray.origin);
                 if (GetComponent<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
                     int vertex = triangles[hit.triangleIndex].vertices[0];
                     tempPointConstraint = vertex;
                     lastMousePos = Input.mousePosition;
                     deltaPointConstraint = Vector3.zero;
                 }
-                //else if (GetComponentInChildren<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
-                //    int vertex = triangles[hit.triangleIndex].vertices[0];
-                //    tempPointConstraint = vertex;
-                //    lastMousePos = Input.mousePosition;
-                //    deltaPointConstraint = Vector3.zero;
-                //}
+                else if (GetComponentInChildren<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
+                    int vertex = triangles[hit.triangleIndex].vertices[0];
+                    tempPointConstraint = vertex;
+                    lastMousePos = Input.mousePosition;
+                    deltaPointConstraint = Vector3.zero;
+                }
             }
             else if (Input.GetMouseButtonUp(0)) {
                 tempPointConstraint = -1;
