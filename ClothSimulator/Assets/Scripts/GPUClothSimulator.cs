@@ -12,6 +12,7 @@ public class GPUClothSimulator : MonoBehaviour {
     public Vector3 gravity;
 
     [Header("Cloth Parameters")]
+    public bool useExistingMesh;
     public int rows = 10;
     public int columns = 10;
 
@@ -97,9 +98,14 @@ public class GPUClothSimulator : MonoBehaviour {
 
     private void Start () {
         // create new mesh
-        mesh = Utility.CreateClothMesh(rows, columns);
+        if (useExistingMesh) {
+            mesh = GetComponent<MeshFilter>().mesh;
+        }
+        else {
+            mesh = Utility.CreateClothMesh(rows, columns);
+            GetComponent<MeshFilter>().mesh = mesh;
+        }
         mesh.MarkDynamic();
-        transform.GetComponent<MeshFilter>().mesh = mesh;
 
         numParticles = mesh.vertexCount;
         Vector3[] baseVertices = mesh.vertices;
