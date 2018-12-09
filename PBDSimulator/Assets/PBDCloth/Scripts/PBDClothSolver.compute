@@ -1,0 +1,389 @@
+﻿// struct declarations
+struct EdgeStruct {
+	int startIndex;
+	int endIndex;
+};
+
+struct DistanceConstraintStruct {
+	EdgeStruct edge;
+	float restLength;
+};
+
+struct BendingConstraintStruct {
+	int index0;
+	int index1;
+	int index2;
+	int index3;
+	float restAngle;
+};
+
+struct CollidableSphereStruct {
+	float3 center;
+	float radius;
+};
+
+struct CollidableCubeStruct {
+	float3 center;
+	float3 extent;
+};
+
+// Uniform data
+uint numParticles;
+uint numDistanceConstraints;
+uint numBendingConstraints;
+uint numAllConstraints;
+uint numCollidableSpheres;
+uint numCollidableCubes;
+uint numPointConstraints;
+float3 gravity;
+float invMass;
+float dt;
+float stretchStiffness;
+float compressionStiffness;
+float bendingStiffness;
+
+// Buffer data
+RWStructuredBuffer<float3> positions;
+RWStructuredBuffer<float3> projectedPositions;
+RWStructuredBuffer<float3> velocities;
+RWStructuredBuffer<float> frictions;
+RWStructuredBuffer<float3> deltaPos;
+RWStructuredBuffer<uint3> deltaPosAsInt;
+RWStructuredBuffer<int> deltaCount;
+StructuredBuffer<DistanceConstraintStruct> distanceConstraints;
+StructuredBuffer<BendingConstraintStruct> bendingConstraints;
+StructuredBuffer<CollidableSphereStruct> collidableSpheres;
+StructuredBuffer<CollidableCubeStruct> collidableCubes;
+StructuredBuffer<int> pointConstraints;
+
+bool hasTempPointConstraint;
+uint tempPointConstraint;
+float3 deltaPointConstraint;
+
+
+// ---------------------------------------------------------------
+// --------------- Step 5: Apply External Forces -----------------
+// ---------------------------------------------------------------
+
+#pragma kernel ApplyExternalForces
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void ApplyExternalForces(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+
+	float3 velocity = velocities[id.x] + gravity * invMass * dt;
+	velocities[id.x] = velocity;
+}
+
+
+// ---------------------------------------------------------------
+// ------------------ Step 6: Damp Velocities --------------------
+// ---------------------------------------------------------------
+
+#pragma kernel DampVelocities
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void DampVelocities(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+
+	float3 velocity = velocities[id.x];
+	velocities[id.x] = velocity * 0.998f;
+}
+
+
+// ---------------------------------------------------------------
+// --------------- Step 7: Apply Explicit Euler ------------------
+// ---------------------------------------------------------------
+
+#pragma kernel ApplyExplicitEuler
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void ApplyExplicitEuler(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numParticles) return;
+
+	projectedPositions[id.x] = positions[id.x] + velocities[id.x] * dt;
+}
+
+
+// ---------------------------------------------------------------
+// -------------- Step 9-11: Project Constraints -----------------
+// ---------------------------------------------------------------
+
+#pragma kernel ProjectConstraintDeltas
+
+// helper function for atomic add
+void AtomicAddDelta(int indexIntoDeltaPos, float newDeltaVal, int axis) {
+	uint i_val = asuint(newDeltaVal);
+	uint tmp0 = 0;
+	uint tmp1;
+
+	[allow_uav_condition]
+	while (true) {
+		InterlockedCompareExchange(deltaPosAsInt[indexIntoDeltaPos][axis], tmp0, i_val, tmp1);
+
+		if (tmp1 == tmp0) {
+			break;
+		}
+
+		tmp0 = tmp1;
+		i_val = asuint(newDeltaVal + asfloat(tmp1));
+	}
+
+	return;
+}
+
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void ProjectConstraintDeltas(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numAllConstraints) return;
+
+	if (id.x < numDistanceConstraints) {
+		// read data from the current distance constraint
+		DistanceConstraintStruct constraint = distanceConstraints[id.x];
+		int startIndex = constraint.edge.startIndex;
+		int endIndex = constraint.edge.endIndex;
+		float restLength = constraint.restLength;
+
+		// atomic add the number of constraints to deltaCount buffer
+		InterlockedAdd(deltaCount[startIndex], 1);
+		InterlockedAdd(deltaCount[endIndex], 1);
+
+		// Calculate Deltas
+		// get positions
+		float3 pi = projectedPositions[startIndex];
+		float3 pj = projectedPositions[endIndex];
+		// make edge vector
+		float3 n = pi - pj;
+		// get current length
+		float L = length(n);
+
+		// normalize edge vector
+		if (L >= 1e-7) {
+			n = normalize(n);
+		}
+		float wi = invMass;
+		float wj = invMass;
+		float stiffness = L < restLength ? compressionStiffness : stretchStiffness;
+
+		float3 deltaPosPI = -stiffness * wi / (wi + wj) * (L - restLength) * n; //Minus
+		float3 deltaPosPJ = stiffness * wj / (wi + wj) * (L - restLength) * n; //Plus
+
+		AtomicAddDelta(startIndex, deltaPosPI.x, 0);
+		AtomicAddDelta(startIndex, deltaPosPI.y, 1);
+		AtomicAddDelta(startIndex, deltaPosPI.z, 2);
+
+		AtomicAddDelta(endIndex, deltaPosPJ.x, 0);
+		AtomicAddDelta(endIndex, deltaPosPJ.y, 1);
+		AtomicAddDelta(endIndex, deltaPosPJ.z, 2);
+	}
+	else {
+		BendingConstraintStruct constraint = bendingConstraints[id.x - numDistanceConstraints];
+
+		float3 p0 = projectedPositions[constraint.index0];
+		float3 p1 = projectedPositions[constraint.index1];
+		float3 p2 = projectedPositions[constraint.index2];
+		float3 p3 = projectedPositions[constraint.index3];
+		float restAngle = constraint.restAngle;
+
+		float3 wing = p3 - p2;
+		float wingLength = length(wing);
+
+		if (wingLength >= 1e-7) {
+			//get normals
+			float3 n1 = cross(p2 - p0, p3 - p0);
+			n1 /= dot(n1, n1);
+
+			float3 n2 = cross(p3 - p1, p2 - p1);
+			n2 /= dot(n2, n2);
+			//unlike in the original PBD paper,
+			// both normals point in same direction
+
+			//getting constraints along gradients (gradpC)
+			float invWingLength = 1.0f / wingLength;
+
+			float3 q0 = wingLength * n1;
+			float3 q1 = wingLength * n2;
+			float3 q2 = dot(p0 - p3, wing) * invWingLength * n1
+				+ dot(p1 - p3, wing) * invWingLength * n2;
+			float3 q3 = dot(p2 - p0, wing) * invWingLength * n1
+				+ dot(p2 - p1, wing) * invWingLength * n2;
+
+			//find current angle
+			n1 = normalize(n1);
+			n2 = normalize(n2);
+
+			float d = dot(n1, n2);
+			d = clamp(d, -1.0f, 1.0f);
+			float currentAngle = acos(d);
+
+			//find lamda ( where deltap = lamda*wi*gradConstraint )
+			float lamda = 0;
+			lamda += invMass * dot(q0, q0);
+			lamda += invMass * dot(q1, q1);
+			lamda += invMass * dot(q2, q2);
+			lamda += invMass * dot(q3, q3);
+
+			if (lamda != 0.0f) {
+				lamda = (currentAngle - restAngle) / lamda * bendingStiffness;
+
+				if (dot(cross(n1, n2), wing) > 0.0f) {
+					lamda = -lamda;
+				}
+				
+				float3 deltaPos0 = -invMass * lamda * q0;
+				float3 deltaPos1 = -invMass * lamda * q1;
+				float3 deltaPos2 = -invMass * lamda * q2;
+				float3 deltaPos3 = -invMass * lamda * q3;
+
+				AtomicAddDelta(constraint.index0, deltaPos0.x, 0);
+				AtomicAddDelta(constraint.index0, deltaPos0.y, 1);
+				AtomicAddDelta(constraint.index0, deltaPos0.z, 2);
+				InterlockedAdd(deltaCount[constraint.index0], 1);
+
+				AtomicAddDelta(constraint.index1, deltaPos1.x, 0);
+				AtomicAddDelta(constraint.index1, deltaPos1.y, 1);
+				AtomicAddDelta(constraint.index1, deltaPos1.z, 2);
+				InterlockedAdd(deltaCount[constraint.index1], 1);
+
+				AtomicAddDelta(constraint.index2, deltaPos2.x, 0);
+				AtomicAddDelta(constraint.index2, deltaPos2.y, 1);
+				AtomicAddDelta(constraint.index2, deltaPos2.z, 2);
+				InterlockedAdd(deltaCount[constraint.index2], 1);
+
+				AtomicAddDelta(constraint.index3, deltaPos3.x, 0);
+				AtomicAddDelta(constraint.index3, deltaPos3.y, 1);
+				AtomicAddDelta(constraint.index3, deltaPos3.z, 2);
+				InterlockedAdd(deltaCount[constraint.index3], 1);
+			}
+		}
+	}
+}
+
+
+#pragma kernel AverageConstraintDeltas
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+	int index = id.x;
+
+	if (deltaCount[index] > 0) {
+		deltaPos[index].x = asfloat(deltaPosAsInt[index].x);
+		deltaPos[index].y = asfloat(deltaPosAsInt[index].y);
+		deltaPos[index].z = asfloat(deltaPosAsInt[index].z);
+
+		deltaPos[index] /= deltaCount[index];
+	}
+
+	projectedPositions[index] += deltaPos[index] * 1.5f;
+
+	// reset delta buffers to zero
+	deltaPos[index] = float3(0, 0, 0);
+
+	deltaPosAsInt[index] = uint3(0, 0, 0);
+
+	deltaCount[index] = 0;
+}
+
+
+#pragma kernel SatisfySphereCollisions
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void SatisfySphereCollisions(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numParticles) return;
+
+	float3 projectedPosition = projectedPositions[id.x];
+	for (uint i = 0; i < numCollidableSpheres; i++) {
+		float3 center = collidableSpheres[i].center;
+		float radius = collidableSpheres[i].radius;
+
+		if (length(projectedPosition - center) < radius) {
+			float3 n = normalize(projectedPosition - center);
+			projectedPosition = center + n * (radius + 0.01f);
+			frictions[id.x] = 0.8f;
+		}
+	}
+
+	projectedPositions[id.x] = projectedPosition;
+}
+
+
+#pragma kernel SatisfyCubeCollisions
+
+bool IsPointInCube(float3 position, float3 extent) {
+	return abs(position.x) < extent.x && abs(position.y) < extent.y && abs(position.z) < extent.z;
+}
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void SatisfyCubeCollisions(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numParticles) return;
+
+	float3 projectedPosition = projectedPositions[id.x];
+	
+	for (uint i = 0; i < numCollidableCubes; i++) {	
+		float3 center = collidableCubes[i].center;
+		float3 extent = collidableCubes[i].extent;
+		float3 localPosition = projectedPosition - center;
+
+		if (IsPointInCube(localPosition, extent)) {
+			int closestAxis = -1;
+			float closestDist = 99999;
+			for (int i = 0; i < 3; i++) {
+				float dist = abs(localPosition[i] - extent[i]);
+				if (dist < closestDist) {
+					closestDist = dist;
+					closestAxis = i;
+				}
+			}
+
+			float3 newPos = localPosition;
+			if (closestAxis == 0) {
+				newPos.x = (extent.x + 0.001f) * sign(localPosition.x);
+			}
+			else if (closestAxis == 1) {
+				newPos.y = (extent.y + 0.001f) * sign(localPosition.y);
+			}
+			else if (closestAxis == 2) {
+				newPos.z = (extent.z + 0.001f) * sign(localPosition.z);
+			}
+
+			projectedPosition = newPos + center;
+			frictions[id.x] = 0.8f;
+		}
+	}
+
+	projectedPositions[id.x] = projectedPosition;
+}
+
+
+#pragma kernel SatisfyPointConstraints
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void SatisfyPointConstraints(uint3 id : SV_DispatchThreadID) {
+	if (id.x >= numPointConstraints) return;
+	
+	uint index = pointConstraints[id.x];
+	if (hasTempPointConstraint && index == tempPointConstraint) {
+		projectedPositions[index] = positions[index] + deltaPointConstraint;
+	}
+	else {
+		projectedPositions[index] = positions[index];
+	}
+}
+
+
+// ---------------------------------------------------------------
+// --------- Step 13-14: Update Velocities and Position ----------
+// ---------------------------------------------------------------
+
+
+#pragma kernel UpdatePositions
+
+[numthreads(8, 1, 1)] // TODO: play around with numthread size
+void UpdatePositions(uint3 id : SV_DispatchThreadID){
+	if (id.x >= numParticles) return;
+
+	velocities[id.x] = (projectedPositions[id.x] - positions[id.x]) / dt * frictions[id.x];
+	positions[id.x] = projectedPositions[id.x];
+	frictions[id.x] = 1;
+}
+
+
+
