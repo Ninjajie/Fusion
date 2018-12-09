@@ -224,12 +224,7 @@ void ProjectConstraintDeltas(uint3 id : SV_DispatchThreadID){
 				if (dot(cross(n1, n2), wing) > 0.0f) {
 					lamda = -lamda;
 				}
-
-				projectedPositions[constraint.index0] -= invMass * lamda * q0;
-				projectedPositions[constraint.index1] -= invMass * lamda * q1;
-				projectedPositions[constraint.index2] -= invMass * lamda * q2;
-				projectedPositions[constraint.index3] -= invMass * lamda * q3;
-
+				
 				float3 deltaPos0 = -invMass * lamda * q0;
 				float3 deltaPos1 = -invMass * lamda * q1;
 				float3 deltaPos2 = -invMass * lamda * q2;

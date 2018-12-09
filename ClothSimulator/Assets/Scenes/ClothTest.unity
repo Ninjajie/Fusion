@@ -131,7 +131,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!65 &237793799
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -229,7 +229,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!135 &681380441
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -664,7 +664,7 @@ MonoBehaviour:
   columns: 32
   distanceCompressionStiffness: 1
   distanceStretchStiffness: 1
-  bendingStiffness: 0.1
+  bendingStiffness: 0.01
   bendingMethod: 0
   dampingMethod: 1
   dampingStiffness: 0.02
@@ -673,6 +673,7 @@ MonoBehaviour:
   collidableObjects:
   - {fileID: 237793798}
   - {fileID: 2033210137}
+  - {fileID: 681380440}
   PBDClothSolver: {fileID: 7200000, guid: 8be10bd717e91154da13742e44654f2c, type: 3}
   workGroupSize: 8
 --- !u!23 &1399422933
