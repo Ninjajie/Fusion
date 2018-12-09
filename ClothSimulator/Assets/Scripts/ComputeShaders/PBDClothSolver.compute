@@ -55,6 +55,10 @@ StructuredBuffer<CollidableSphereStruct> collidableSpheres;
 StructuredBuffer<CollidableCubeStruct> collidableCubes;
 StructuredBuffer<int> pointConstraints;
 
+bool hasTempPointConstraint;
+uint tempPointConstraint;
+float3 deltaPointConstraint;
+
 
 // ---------------------------------------------------------------
 // --------------- Step 5: Apply External Forces -----------------
@@ -352,8 +356,13 @@ void SatisfyCubeCollisions(uint3 id : SV_DispatchThreadID) {
 void SatisfyPointConstraints(uint3 id : SV_DispatchThreadID) {
 	if (id.x >= numPointConstraints) return;
 	
-	int index = pointConstraints[id.x];
-	projectedPositions[index] = positions[index];
+	uint index = pointConstraints[id.x];
+	if (hasTempPointConstraint && index == tempPointConstraint) {
+		projectedPositions[index] = positions[index] + deltaPointConstraint;
+	}
+	else {
+		projectedPositions[index] = positions[index];
+	}
 }
 
 

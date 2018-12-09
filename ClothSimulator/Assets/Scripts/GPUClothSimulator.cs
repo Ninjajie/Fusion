@@ -31,6 +31,9 @@ public class GPUClothSimulator : MonoBehaviour {
     [Header("Point Constraints")]
     public PointConstraintType pointConstraintType;
     public int[] pointConstraintCustomIndices;
+    public bool enableMouseInteraction;
+    private int tempPointConstraint = -1;
+    private Vector3 deltaPointConstraint, lastMousePos;
 
     [Header("Collision")]
     public GameObject[] collidableObjects;
@@ -228,6 +231,15 @@ public class GPUClothSimulator : MonoBehaviour {
 
             // satisfy pointConstraints
             if (numPointConstraints > 0) {
+                if (enableMouseInteraction && tempPointConstraint != -1) {
+                    PBDClothSolver.SetBool("hasTempPointConstraint", true);
+                    PBDClothSolver.SetVector("deltaPointConstraint", deltaPointConstraint);
+                    PBDClothSolver.SetInt("tempPointConstraint", tempPointConstraint);
+                }
+                else {
+                    PBDClothSolver.SetBool("hasTempPointConstraint", false);
+                    PBDClothSolver.SetInt("tempPointConstraint", -1);
+                }
                 PBDClothSolver.Dispatch(satisfyPointConstraintsKernel, numGroups_PointConstraints, 1, 1);
             }
 
@@ -237,6 +249,48 @@ public class GPUClothSimulator : MonoBehaviour {
             // step 16: update all velocities using friction
             //ApplyFriction();
         }
+
+        // handle mouse drag inputs
+        if (enableMouseInteraction) {
+            if (Input.GetMouseButtonDown(0) && tempPointConstraint == -1) {
+                RaycastHit hit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (GetComponent<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
+                    int vertex = triangles[hit.triangleIndex].vertices[0];
+                    tempPointConstraint = vertex;
+                    lastMousePos = Input.mousePosition;
+                    deltaPointConstraint = Vector3.zero;
+                }
+            }
+            else if (Input.GetMouseButtonUp(0)) {
+                tempPointConstraint = -1;
+            }
+            else if (tempPointConstraint != -1) {
+                deltaPointConstraint = Input.mousePosition - lastMousePos;
+                deltaPointConstraint *= 0.001f;
+                deltaPointConstraint.x *= -1;
+                lastMousePos = Input.mousePosition;
+                if (Input.GetKey(KeyCode.W)) {
+                    deltaPointConstraint.z -= 0.01f;
+                }
+                if (Input.GetKey(KeyCode.S)) {
+                    deltaPointConstraint.z += 0.01f;
+                }
+                if (Input.GetKey(KeyCode.A)) {
+                    deltaPointConstraint.x += 0.01f;
+                }
+                if (Input.GetKey(KeyCode.D)) {
+                    deltaPointConstraint.x -= 0.01f;
+                }
+                if (Input.GetKey(KeyCode.Q)) {
+                    deltaPointConstraint.y += 0.01f;
+                }
+                if (Input.GetKey(KeyCode.E)) {
+                    deltaPointConstraint.y -= 0.01f;
+                }
+            }
+        }
+
 
         // get data from GPU back to CPU
         positionsBuffer.GetData(positions);
@@ -269,7 +323,7 @@ public class GPUClothSimulator : MonoBehaviour {
         }
         reverseMesh.normals = reverseNormals;
 
-        //print(Time.deltaTime + ", " + iter);
+        GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
 
@@ -451,6 +505,10 @@ public class GPUClothSimulator : MonoBehaviour {
             if (index >= 0 && index < numParticles) {
                 points.Add(index);
             }
+        }
+
+        if (tempPointConstraint != -1) {
+            points.Add(tempPointConstraint);
         }
 
         numPointConstraints = points.Count;

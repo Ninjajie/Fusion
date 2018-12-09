@@ -638,13 +638,14 @@ GameObject:
   - component: {fileID: 1399422934}
   - component: {fileID: 1399422933}
   - component: {fileID: 1399422932}
+  - component: {fileID: 1399422936}
   m_Layer: 0
   m_Name: GPUCloth
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1399422932
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -669,8 +670,9 @@ MonoBehaviour:
   bendingMethod: 0
   dampingMethod: 1
   dampingStiffness: 0.02
-  pointConstraintType: 2
+  pointConstraintType: 0
   pointConstraintCustomIndices: 
+  enableMouseInteraction: 1
   collidableObjects:
   - {fileID: 237793798}
   - {fileID: 2033210137}
@@ -726,12 +728,26 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1399422931}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 2}
+  m_LocalPosition: {x: 0, y: 1.67, z: 0.54}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &1399422936
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1399422931}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Convex: 0
+  m_CookingOptions: 14
+  m_SkinWidth: 0.01
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1523094612
 GameObject:
   m_ObjectHideFlags: 0
@@ -957,7 +973,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1957278759
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -984,6 +1000,7 @@ MonoBehaviour:
   dampingStiffness: 0.02
   pointConstraintType: 0
   pointConstraintCustomIndices: c800000090010000
+  enableMouseInteraction: 0
   collidableObjects:
   - {fileID: 237793798}
   - {fileID: 681380440}
@@ -1041,7 +1058,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1957278758}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -7.28, z: 0}
+  m_LocalPosition: {x: 0, y: -5.37, z: 0}
   m_LocalScale: {x: 6.438312, y: 6.438312, z: 6.438312}
   m_Children: []
   m_Father: {fileID: 0}
