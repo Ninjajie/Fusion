@@ -1,0 +1,80 @@
+﻿//Hash function constants
+float HashScale;
+float3 HashSize;
+float3 HashTranslate;
+
+//index map and start/end index table buffer
+RWStructuredBuffer<int2> IndexMap;
+RWStructuredBuffer<int2> Table;
+
+//the actual hash function
+int3 HashIndex(float3 p)
+{
+	p = (p - HashTranslate) * HashScale;
+	return clamp(p, 0, HashSize - 1);
+}
+
+//the kernel Radius constants
+float KernelRadius;
+float KernelRadius2;
+
+//the Poly6 kernel constants
+float Poly6Zero;
+float Poly6;
+
+//cubic helper function
+float Pow3(float v)
+{
+	return v * v * v;
+}
+
+//Poly6 Smoothing kernel function
+float Poly6Kernel(float len2)
+{
+	return Poly6 * Pow3(KernelRadius2 - len2);
+}
+
+//Macros for workgroup size and PI
+#define THREADS 128
+#define PI 3.14159265359
+
+//the boundary particles buffer
+RWStructuredBuffer<float4> Boundary;
+//uniforms for fluid density and number of particles
+float Density;
+int NumParticles;
+
+//helper function for squared distance
+float Distance2(float3 a, float3 b)
+{
+	float3 ab = a - b;
+	return ab.x*ab.x + ab.y*ab.y + ab.z*ab.z;
+}
+
+//Compute Psi for boundary particles, simply using the Poly6Zero constant
+float Compute(int id, float3 pi)
+{
+	int3 hashIndex = HashIndex(pi);
+	int3 size = HashSize;
+
+	float delta = Poly6Zero;
+
+	float volume = 1.0f / delta;
+	return Density * volume;
+}
+
+//the kernel that compute Psi 
+#pragma kernel ComputePsi
+[numthreads(THREADS, 1, 1)]
+void ComputePsi(int id : SV_DispatchThreadID)
+{
+
+	if (id < NumParticles)
+	{
+		float3 pi = Boundary[id].xyz;
+		float psi = Compute(id, pi);
+		//store the psi value of boundary particles in the w component of Boundary structure
+		Boundary[id].w = psi;
+	}
+
+}

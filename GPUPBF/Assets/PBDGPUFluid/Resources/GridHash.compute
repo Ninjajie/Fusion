@@ -1,0 +1,75 @@
+﻿//the constants used for calculate cellID of particles AKA hash values
+float HashScale;
+float3 HashSize;
+float3 HashTranslate;
+//the indexmap and start/end index buffer
+RWStructuredBuffer<int2> IndexMap;
+RWStructuredBuffer<int2> Table;
+
+//the "hash" function to find the grid that each cell lies in
+int Hash(float3 p)
+{
+	p = (p - HashTranslate) * HashScale;
+	int3 i = clamp(p, 0, HashSize - 1);
+
+	return i.x + i.y * HashSize.x + i.z * HashSize.x * HashSize.y;
+}
+//Macro defining the size of a workgroup
+#define THREADS 128
+//the data buffer of fluid body particle positons and fluid boundary particle positons
+StructuredBuffer<float4> Particles;
+StructuredBuffer<float4> Boundary;
+//the uniform variables that stores the number of fluid body particles and ALL particles(including boundary)
+int NumParticles;
+int TotalParticles;
+
+//the kernel that calculates Hash value of every particle
+#pragma kernel HashParticles
+
+[numthreads(THREADS, 1, 1)]
+void HashParticles(int id : SV_DispatchThreadID)
+{
+	int2 index;
+	index.y = id;
+
+	if (id < NumParticles)
+	{
+		index.x = Hash(Particles[id].xyz);
+		IndexMap[id] = index;
+	}
+	else if (id < TotalParticles)
+	{
+		int k = id - NumParticles;
+		index.x = Hash(Boundary[k].xyz);
+		IndexMap[id] = index;
+	}
+
+}
+
+//the kernel used for clearing the start/end index table
+#pragma kernel ClearTable
+
+[numthreads(THREADS, 1, 1)]
+void ClearTable(int id : SV_DispatchThreadID)
+{
+	if (id < TotalParticles)
+		Table[id] = 0;
+}
+//the kernel that maps the SORTED cellID-particleID pairs into a start/end index table
+#pragma kernel MapTable
+
+[numthreads(THREADS, 1, 1)]
+void MapTable(int id : SV_DispatchThreadID)
+{
+	if (id < TotalParticles)
+	{
+		int hash = IndexMap[id].x;
+		//if this entry starts a new block, store its index in the x field
+		if (id == 0 || hash != IndexMap[id - 1].x)
+			Table[hash].x = id;
+		//the this entry is the end to a block, store its index in the y field.
+		if (id == TotalParticles - 1 || hash != IndexMap[id + 1].x)
+			Table[hash].y = id;
+	}
+}
+

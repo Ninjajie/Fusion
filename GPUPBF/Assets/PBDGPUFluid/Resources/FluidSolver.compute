@@ -1,0 +1,435 @@
+﻿
+//uniform variables for calculating CellID, AKA hash value
+float HashScale;
+float3 HashSize;
+float3 HashTranslate;
+//the position where the explosion should be 
+float3 blastPoint;
+//the index map and start/end index table for particles
+RWStructuredBuffer<int2> IndexMap;
+RWStructuredBuffer<int2> Table;
+//hash function
+int3 HashIndex(float3 p)
+{
+	p = (p - HashTranslate) * HashScale;
+	return clamp(p, 0, HashSize - 1);
+}
+
+float KernelRadius;
+float KernelRadius2;
+
+float Poly6Zero;
+float Poly6;
+float SpikyGrad;
+float ViscLap;
+//square helper function
+float Pow2(float v)
+{
+	return v * v;
+}
+//cubic helper function
+float Pow3(float v)
+{
+	return v * v * v;
+}
+//the Poly6 smoothing kernel function
+float Poly6Kernel(float len2)
+{
+	return Poly6 * Pow3(KernelRadius2 - len2);
+}
+//the spiky gradient kernel function
+float3 SpikyGradKernel(float3 p, float len2)
+{
+	float r = sqrt(len2);
+	return (p / r) * SpikyGrad * Pow2(KernelRadius - r);
+}
+//the Viscocity Laplacian function
+float ViscLapKernel(float len2)
+{
+	float r = sqrt(len2);
+	return ViscLap * (KernelRadius - r);
+}
+//Macros: thread number in a workgroup and PI constant
+#define THREADS 128
+#define PI 3.14159265359
+
+//the position buffer
+RWStructuredBuffer<float4> Positions;
+//read and write buffer for predicted position, used for double buffer calculation
+StructuredBuffer<float4> PredictedREAD;
+RWStructuredBuffer<float4> PredictedWRITE;
+//read and write buffer for velocities
+StructuredBuffer<float4> VelocitiesREAD;
+RWStructuredBuffer<float4> VelocitiesWRITE;
+//buffer for densities and pressures of all particles
+RWStructuredBuffer<float> Densities;
+RWStructuredBuffer<float> Pressures;
+//the boundary particle buffer
+StructuredBuffer<float4> Boundary;
+
+//several constants for the simulation
+float3 Gravity;
+float Dampning;
+float DeltaTime;
+float Density;
+float Viscosity;
+float ParticleMass;
+int NumParticles;
+//the bounding box for restricting particles inside the region (not working as expected)
+float3 BoundMin;
+float3 BoundMax;
+
+float3 Velocity(int i)
+{
+
+	float3 velocity = VelocitiesREAD[i].xyz;
+	velocity -= velocity * Dampning * DeltaTime;
+	velocity += DeltaTime * Gravity;
+
+	if (blastPoint[1] < 100) 
+	{
+		float3 diff = Positions[i].xyz - blastPoint;
+		float dis2Blast = length(diff);
+		if (dis2Blast <= 20.0 && dis2Blast >= 0.2) 
+		{
+			velocity += diff / dis2Blast / dis2Blast * 10;
+		}
+	}
+	//Using the bounding box for restricting particles inside the region (not working as expected)
+
+	//float3 possiblePos = Positions[i].xyz + DeltaTime * velocity;
+	//if (Positions[i].x < BoundMax.x && possiblePos.x > BoundMax.x) velocity.x *= -1.0;
+	//if (Positions[i].x > BoundMin.x && possiblePos.x < BoundMin.x) velocity.x *= -1.0;
+	//if (Positions[i].y < BoundMax.y && possiblePos.y > BoundMax.y) velocity.y *= -1.0;
+	//if (Positions[i].y < BoundMin.y && possiblePos.y < BoundMin.y) velocity.y *= -1.0;
+	//if (Positions[i].z < BoundMax.z && possiblePos.z > BoundMax.z) velocity.z *= -1.0;
+	//if (Positions[i].z < BoundMin.z && possiblePos.z < BoundMin.z) velocity.z *= -1.0;
+
+	return velocity;
+}
+
+float3 PredictedPosition(int i, float3 velocity)
+{
+	return Positions[i].xyz + DeltaTime * velocity;
+}
+
+#pragma kernel PredictPositions
+
+[numthreads(THREADS, 1, 1)]
+void PredictPositions(int id : SV_DispatchThreadID)
+{
+	if (id < NumParticles)
+	{
+		float3 velocity = Velocity(id);
+		float3 predicted = PredictedPosition(id, velocity);
+
+		VelocitiesWRITE[id] = float4(velocity, 0);
+		PredictedWRITE[id] = float4(predicted, 0);
+	}
+
+}
+
+float Distance2(float3 a, float3 b)
+{
+	float3 ab = a - b;
+	return dot(ab, ab);
+}
+
+float Length2(float3 p)
+{
+	return dot(p, p);
+}
+
+//unrolling loop Macro
+#define LOOP_START \
+[unroll] \
+for (int k = -1; k <= 1; k++) \
+{ \
+[unroll] \
+for (int j = -1; j <= 1; j++) \
+{ \
+[unroll] \
+for (int i = -1; i <= 1; i++) \
+{ \
+
+#define LOOP_END \
+} } } \
+
+//Using Neighboor searching and Poly6 kernel to calculate densities
+//then use Spiky gradient kernel to calculate pressures
+void ComputeDensityAndPressure(int id, float3 pi, out float density, out float pressure)
+{
+
+	float InvDensity = 1.0f / Density;
+	float MassMulInvDensity = ParticleMass * InvDensity;
+
+	density = ParticleMass * Poly6Zero;
+	pressure = 0;
+
+	float sum_grad_C2 = 0.0f;
+	float3 gradC_i = 0.0f;
+
+	int3 hashIndex = HashIndex(pi);
+	int3 size = HashSize;
+	int sizexy = size.x * size.y;
+
+	LOOP_START
+
+		int xi = hashIndex.x + i;
+	int yj = hashIndex.y + j;
+	int zk = hashIndex.z + k;
+
+	if (xi < 0 || xi >= size.x) continue;
+	if (yj < 0 || yj >= size.y) continue;
+	if (zk < 0 || zk >= size.z) continue;
+
+	int hash = xi + yj * size.x + zk * sizexy;
+	int2 bounds = Table[hash];
+
+	for (int idx = bounds.x; idx <= bounds.y; idx++)
+	{
+		int n = IndexMap[idx].y;
+		if (n == id) continue;
+
+		float dist2;
+		float3 diff;
+		float psi;
+		if (n < NumParticles)
+		{
+			diff = pi - PredictedREAD[n].xyz;
+			dist2 = Length2(diff);
+		}
+		else
+		{
+			int m = n - NumParticles;
+			float4 b = Boundary[m];
+			diff = pi - b.xyz;
+			psi = b.w;
+			dist2 = Length2(diff);
+		}
+
+		if (dist2 >= KernelRadius2) continue;
+
+		if (n < NumParticles)
+		{
+			density += ParticleMass * Poly6Kernel(dist2);
+			float3 gradC_j = -MassMulInvDensity * SpikyGradKernel(diff, dist2);
+			sum_grad_C2 += dot(gradC_j, gradC_j);
+			gradC_i -= gradC_j;
+		}
+		else
+		{
+			density += psi * Poly6Kernel(dist2);
+			float3 gradC_j = -psi * InvDensity * SpikyGradKernel(diff, dist2);
+			sum_grad_C2 += Length2(gradC_j);
+			gradC_i -= gradC_j;
+		}
+	}
+
+	LOOP_END
+
+		float C = density * InvDensity - 1.0f;
+
+	if (C > 0)
+	{
+		// C > 0 for 60% - 65% of particles
+		sum_grad_C2 += Length2(gradC_i);
+
+		//If the fluid is collapsing you need to adjust e.
+		//Its a user specified relaxation parameter that 
+		//needs to be added to stabilze the pressure
+		//due to a vanishing gradient at the smoothing 
+		//kernel borders. The value may need to increase
+		//as the number of particles increase.
+		float e = 60.0f;
+		pressure = -C / (sum_grad_C2 + e);
+	}
+
+}
+
+//the kernel for computing densities
+#pragma kernel ComputeDensity
+
+[numthreads(THREADS, 1, 1)]
+void ComputeDensity(int id : SV_DispatchThreadID)
+{
+	if (id < NumParticles)
+	{
+		float3 pi = PredictedREAD[id].xyz;
+
+		float density, pressure;
+		ComputeDensityAndPressure(id, pi, density, pressure);
+
+		Densities[id] = density;
+		Pressures[id] = pressure;
+
+	}
+}
+//helper function to calculate predicted positions for each particle
+float3 SolveDensity(int id, float3 pi, float pressure)
+{
+
+	float3 corr = 0;
+	float InvDensity = 1.0f / Density;
+	float MassMulInvDensity = ParticleMass * InvDensity;
+
+	int3 hashIndex = HashIndex(pi);
+	int3 size = HashSize;
+	int sizexy = size.x * size.y;
+
+	LOOP_START
+
+		int xi = hashIndex.x + i;
+	int yj = hashIndex.y + j;
+	int zk = hashIndex.z + k;
+
+	if (xi < 0 || xi >= size.x) continue;
+	if (yj < 0 || yj >= size.y) continue;
+	if (zk < 0 || zk >= size.z) continue;
+
+	int hash = xi + yj * size.x + zk * sizexy;
+	int2 bounds = Table[hash];
+
+	for (int idx = bounds.x; idx <= bounds.y; idx++)
+	{
+		int n = IndexMap[idx].y;
+		if (n == id) continue;
+
+		float dist2;
+		float3 diff;
+		float psi;
+		if (n < NumParticles)
+		{
+			diff = pi - PredictedREAD[n].xyz;
+			dist2 = Length2(diff);
+		}
+		else
+		{
+			int m = n - NumParticles;
+			float4 b = Boundary[m];
+			diff = pi - b.xyz;
+			psi = b.w;
+			dist2 = Length2(diff);
+		}
+
+		if (dist2 >= KernelRadius2) continue;
+
+		if (n < NumParticles)
+		{
+			float3 gradW = SpikyGradKernel(diff, dist2);
+			corr -= (pressure + Pressures[n]) * -MassMulInvDensity * gradW;
+		}
+		else
+		{
+			float3 gradW = SpikyGradKernel(diff, dist2);
+			corr -= pressure * -psi * InvDensity * gradW;
+		}
+	}
+
+	LOOP_END
+
+		return corr;
+}
+
+//the kernel that solves position constraints
+#pragma kernel SolveConstraint
+
+[numthreads(THREADS, 1, 1)]
+void SolveConstraint(int id : SV_DispatchThreadID)
+{
+	if (id < NumParticles)
+	{
+		float3 pi = PredictedREAD[id].xyz;
+		float pressure = Pressures[id];
+
+		pi += SolveDensity(id, pi, pressure);
+
+		PredictedWRITE[id] = float4(pi, 0);
+	}
+}
+//the kernel that updates velocities according to the change of positions
+#pragma kernel UpdateVelocities
+
+[numthreads(THREADS, 1, 1)]
+void UpdateVelocities(int id : SV_DispatchThreadID)
+{
+	if (id < NumParticles)
+	{
+		float4 p = Positions[id];
+		float4 pi = PredictedREAD[id];
+
+		float4 velocity = (pi - p) / DeltaTime;
+
+		VelocitiesWRITE[id] = velocity;
+	}
+}
+//the helper function for computing viscosities
+float3 ComputeViscosity(int id, float3 pi)
+{
+
+	float viscosityMulMass = Viscosity * ParticleMass;
+
+	int3 hashIndex = HashIndex(pi);
+	int3 size = HashSize;
+	float sizexy = size.x * size.y;
+
+	float3 velocity = VelocitiesREAD[id].xyz;
+
+	LOOP_START
+
+		int xi = hashIndex.x + i;
+	int yj = hashIndex.y + j;
+	int zk = hashIndex.z + k;
+
+	if (xi < 0 || xi >= size.x) continue;
+	if (yj < 0 || yj >= size.y) continue;
+	if (zk < 0 || zk >= size.z) continue;
+
+	int hash = xi + yj * size.x + zk * sizexy;
+	int2 bounds = Table[hash];
+
+	for (int idx = bounds.x; idx <= bounds.y; idx++)
+	{
+		int n = IndexMap[idx].y;
+		if (n == id || n >= NumParticles) continue;
+
+		float3 pn = PredictedREAD[n].xyz;
+		float dist2 = Distance2(pi, pn);
+		if (dist2 >= KernelRadius2) continue;
+
+		float invDensity = 1.0f / Densities[n];
+		float v = ViscLapKernel(dist2) * viscosityMulMass * invDensity;
+		velocity -= v * (velocity - VelocitiesREAD[n].xyz);
+	}
+
+	LOOP_END
+
+		return velocity;
+
+}
+//the kernel that solve viscosities
+#pragma kernel SolveViscosity
+
+[numthreads(THREADS, 1, 1)]
+void SolveViscosity(int id : SV_DispatchThreadID)
+{
+	if (id < NumParticles)
+	{
+		float3 pi = PredictedREAD[id].xyz;
+
+		float3 velocity = ComputeViscosity(id, pi);
+
+		VelocitiesWRITE[id] = float4(velocity, 0);
+	}
+}
+//the kernel that finally update the positions
+#pragma kernel UpdatePositions
+
+[numthreads(THREADS, 1, 1)]
+void UpdatePositions(int id : SV_DispatchThreadID)
+{
+	if (id < NumParticles)
+	{
+		Positions[id] = PredictedREAD[id];
+	}
+}

@@ -1,0 +1,4 @@
+sceneSetups:
+- path: Assets/PBDGPUFluid/PBFluid.unity
+  isLoaded: 1
+  isActive: 1
