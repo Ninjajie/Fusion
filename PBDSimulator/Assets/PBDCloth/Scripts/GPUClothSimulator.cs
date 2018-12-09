@@ -256,18 +256,19 @@ public class GPUClothSimulator : MonoBehaviour {
             if (Input.GetMouseButtonDown(0) && tempPointConstraint == -1) {
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                print(ray.origin);
                 if (GetComponent<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
                     int vertex = triangles[hit.triangleIndex].vertices[0];
                     tempPointConstraint = vertex;
                     lastMousePos = Input.mousePosition;
                     deltaPointConstraint = Vector3.zero;
                 }
-                else if (GetComponentInChildren<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
-                    int vertex = triangles[hit.triangleIndex].vertices[0];
-                    tempPointConstraint = vertex;
-                    lastMousePos = Input.mousePosition;
-                    deltaPointConstraint = Vector3.zero;
-                }
+                //else if (GetComponentInChildren<MeshCollider>().Raycast(ray, out hit, float.MaxValue)) {
+                //    int vertex = triangles[hit.triangleIndex].vertices[0];
+                //    tempPointConstraint = vertex;
+                //    lastMousePos = Input.mousePosition;
+                //    deltaPointConstraint = Vector3.zero;
+                //}
             }
             else if (Input.GetMouseButtonUp(0)) {
                 tempPointConstraint = -1;
@@ -277,22 +278,22 @@ public class GPUClothSimulator : MonoBehaviour {
                 deltaPointConstraint *= 0.001f;
                 deltaPointConstraint.x *= -1;
                 lastMousePos = Input.mousePosition;
-                if (Input.GetKey(KeyCode.W)) {
+                if (Input.GetKey(KeyCode.I)) {
                     deltaPointConstraint.z -= 0.01f;
                 }
-                if (Input.GetKey(KeyCode.S)) {
+                if (Input.GetKey(KeyCode.K)) {
                     deltaPointConstraint.z += 0.01f;
                 }
-                if (Input.GetKey(KeyCode.A)) {
+                if (Input.GetKey(KeyCode.J)) {
                     deltaPointConstraint.x += 0.01f;
                 }
-                if (Input.GetKey(KeyCode.D)) {
+                if (Input.GetKey(KeyCode.L)) {
                     deltaPointConstraint.x -= 0.01f;
                 }
-                if (Input.GetKey(KeyCode.Q)) {
+                if (Input.GetKey(KeyCode.U)) {
                     deltaPointConstraint.y += 0.01f;
                 }
-                if (Input.GetKey(KeyCode.E)) {
+                if (Input.GetKey(KeyCode.O)) {
                     deltaPointConstraint.y -= 0.01f;
                 }
             }
@@ -689,6 +690,8 @@ public class GPUClothSimulator : MonoBehaviour {
         if (projectedPositionsBuffer != null) projectedPositionsBuffer.Release();
 
         if (velocitiesBuffer != null) velocitiesBuffer.Release();
+
+        if (frictionsBuffer != null) frictionsBuffer.Release();
 
         if (deltaPositionsBuffer != null) deltaPositionsBuffer.Release();
 
