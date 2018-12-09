@@ -56,12 +56,12 @@ public class BendingConstraint : Constraint {
      * 0  |  1
      *    2
      */
-    int[] vertexIndeces;
+    int[] vertexIndices;
     float restAngle;
     float stiffness;
 
     public BendingConstraint(int[] indices, Vector3[] positions, float stiffness) {
-        vertexIndeces = indices;
+        vertexIndices = indices;
         this.stiffness = stiffness;
 
         Vector3 p0 = positions[indices[0]];
@@ -86,10 +86,10 @@ public class BendingConstraint : Constraint {
      *    2 
      */
 
-        Vector3 p0 = projectedPositions[vertexIndeces[0]];
-        Vector3 p1 = projectedPositions[vertexIndeces[1]];
-        Vector3 p2 = projectedPositions[vertexIndeces[2]];
-        Vector3 p3 = projectedPositions[vertexIndeces[3]];
+        Vector3 p0 = projectedPositions[vertexIndices[0]];
+        Vector3 p1 = projectedPositions[vertexIndices[1]];
+        Vector3 p2 = projectedPositions[vertexIndices[2]];
+        Vector3 p3 = projectedPositions[vertexIndices[3]];
 
         Vector3 wing = p3 - p2;
         float wingLength = wing.magnitude;
@@ -132,27 +132,27 @@ public class BendingConstraint : Constraint {
             if (lamda != 0.0f) {
                 lamda = (currentAngle - restAngle) / lamda * stiffness;
 
-                if (Vector3.Dot(Vector3.Cross(n1, n2), wing) > 0.0) {
+                if (Vector3.Dot(Vector3.Cross(n1, n2), wing) > 0.0f) {
                     lamda = -lamda;
                 }
 
-                projectedPositions[vertexIndeces[0]] -= mass * lamda * q0;
-                projectedPositions[vertexIndeces[1]] -= mass * lamda * q1;
-                projectedPositions[vertexIndeces[2]] -= mass * lamda * q2;
-                projectedPositions[vertexIndeces[3]] -= mass * lamda * q3;
+                projectedPositions[vertexIndices[0]] -= mass * lamda * q0;
+                projectedPositions[vertexIndices[1]] -= mass * lamda * q1;
+                projectedPositions[vertexIndices[2]] -= mass * lamda * q2;
+                projectedPositions[vertexIndices[3]] -= mass * lamda * q3;
             }
         }
     }
 }
 
 public class IsometricBendingConstraint : Constraint {
-    int[] vertexIndeces;
+    int[] vertexIndices;
     float restAngle;
     float stiffness;
     Matrix4x4 Q;
 
     public IsometricBendingConstraint(int[] indices, Vector3[] positions, float stiffness) {
-        vertexIndeces = indices;
+        vertexIndices = indices;
         this.stiffness = stiffness;
         Q = Matrix4x4.zero;
 
@@ -188,10 +188,10 @@ public class IsometricBendingConstraint : Constraint {
     }
 
     public override void Satisfy(Vector3[] projectedPositions, float mass) {
-        Vector3[] x = {projectedPositions[vertexIndeces[2]],
-                       projectedPositions[vertexIndeces[3]],
-                       projectedPositions[vertexIndeces[0]],
-                       projectedPositions[vertexIndeces[1]] };
+        Vector3[] x = {projectedPositions[vertexIndices[2]],
+                       projectedPositions[vertexIndices[3]],
+                       projectedPositions[vertexIndices[0]],
+                       projectedPositions[vertexIndices[1]] };
 
         float energy = 0;
         for (int k = 0; k < 4; k++) {
@@ -218,10 +218,10 @@ public class IsometricBendingConstraint : Constraint {
             // compute impulse-based scaling factor
             float s = energy / sum_normGradC;
 
-            projectedPositions[vertexIndeces[0]] += -stiffness * (s * mass) * gradC[2];
-            projectedPositions[vertexIndeces[1]] += -stiffness * (s * mass) * gradC[3];
-            projectedPositions[vertexIndeces[2]] += -stiffness * (s * mass) * gradC[0];
-            projectedPositions[vertexIndeces[3]] += -stiffness * (s * mass) * gradC[1];
+            projectedPositions[vertexIndices[0]] += -stiffness * (s * mass) * gradC[2];
+            projectedPositions[vertexIndices[1]] += -stiffness * (s * mass) * gradC[3];
+            projectedPositions[vertexIndices[2]] += -stiffness * (s * mass) * gradC[0];
+            projectedPositions[vertexIndices[3]] += -stiffness * (s * mass) * gradC[1];
         }
     }
 }

@@ -364,10 +364,6 @@ public class ClothSimulator : MonoBehaviour {
 
 
     private void AddBendingConstraints() {
-        if (bendingMethod != BendingMethod.noBending) {
-            return;
-        }
-
         Dictionary<Edge, List<Triangle>> wingEdges = new Dictionary<Edge, List<Triangle>>(new EdgeComparer());
 
         // map edges to all of the faces to which they are connected

@@ -39,7 +39,7 @@ public class EdgeComparer : EqualityComparer<Edge> {
 }
 
 public enum DampingMethod { noDamping, simpleDamping, smartDamping }
-public enum BendingMethod { noBending, DihedralBending, isometricBending }
+public enum BendingMethod { DihedralBending, isometricBending }
 public enum PointConstraintType { none, topRow, topCorners, leftRow, leftCorners }
 
 
@@ -61,6 +61,14 @@ struct EdgeStruct {
 struct DistanceConstraintStruct {
     public EdgeStruct edge;
     public float restLength;
+};
+
+struct BendingConstraintStruct {
+    public int index0;
+    public int index1;
+    public int index2;
+    public int index3;
+    public float restAngle;
 };
 
 struct CollidableSphereStruct {

@@ -9,6 +9,14 @@ struct DistanceConstraintStruct {
 	float restLength;
 };
 
+struct BendingConstraintStruct {
+	int index0;
+	int index1;
+	int index2;
+	int index3;
+	float restAngle;
+};
+
 struct CollidableSphereStruct {
 	float3 center;
 	float radius;
@@ -22,6 +30,8 @@ struct CollidableCubeStruct {
 // Uniform data
 uint numParticles;
 uint numDistanceConstraints;
+uint numBendingConstraints;
+uint numAllConstraints;
 uint numCollidableSpheres;
 uint numCollidableCubes;
 uint numPointConstraints;
@@ -30,6 +40,7 @@ float invMass;
 float dt;
 float stretchStiffness;
 float compressionStiffness;
+float bendingStiffness;
 
 // Buffer data
 RWStructuredBuffer<float3> positions;
@@ -39,6 +50,7 @@ RWStructuredBuffer<float3> deltaPos;
 RWStructuredBuffer<uint3> deltaPosAsInt;
 RWStructuredBuffer<int> deltaCount;
 StructuredBuffer<DistanceConstraintStruct> distanceConstraints;
+StructuredBuffer<BendingConstraintStruct> bendingConstraints;
 StructuredBuffer<CollidableSphereStruct> collidableSpheres;
 StructuredBuffer<CollidableCubeStruct> collidableCubes;
 StructuredBuffer<int> pointConstraints;
@@ -118,45 +130,133 @@ void AtomicAddDelta(int indexIntoDeltaPos, float newDeltaVal, int axis) {
 
 [numthreads(8, 1, 1)] // TODO: play around with numthread size
 void ProjectConstraintDeltas(uint3 id : SV_DispatchThreadID){
-	if (id.x >= numDistanceConstraints) return;
+	if (id.x >= numAllConstraints) return;
 
-	// read data from the current distance constraint
-	DistanceConstraintStruct d = distanceConstraints[id.x];
-	int startIndex = d.edge.startIndex;
-	int endIndex = d.edge.endIndex;
-	float restLength = d.restLength;
+	if (id.x < numDistanceConstraints) {
+		// read data from the current distance constraint
+		DistanceConstraintStruct constraint = distanceConstraints[id.x];
+		int startIndex = constraint.edge.startIndex;
+		int endIndex = constraint.edge.endIndex;
+		float restLength = constraint.restLength;
 
-	// atomic add the number of constraints to deltaCount buffer
-	InterlockedAdd(deltaCount[startIndex], 1);
-	InterlockedAdd(deltaCount[endIndex], 1);
+		// atomic add the number of constraints to deltaCount buffer
+		InterlockedAdd(deltaCount[startIndex], 1);
+		InterlockedAdd(deltaCount[endIndex], 1);
 
-	// Calculate Deltas
-	// get positions
-	float3 pi = projectedPositions[startIndex];
-	float3 pj = projectedPositions[endIndex];
-	// make edge vector
-	float3 n = pi - pj;
-	// get current length
-	float L = length(n);
+		// Calculate Deltas
+		// get positions
+		float3 pi = projectedPositions[startIndex];
+		float3 pj = projectedPositions[endIndex];
+		// make edge vector
+		float3 n = pi - pj;
+		// get current length
+		float L = length(n);
 
-	// normalize edge vector
-	if (L >= 1e-7) {
-		n = normalize(n);
+		// normalize edge vector
+		if (L >= 1e-7) {
+			n = normalize(n);
+		}
+		float wi = invMass;
+		float wj = invMass;
+		float stiffness = L < restLength ? compressionStiffness : stretchStiffness;
+
+		float3 deltaPosPI = -stiffness * wi / (wi + wj) * (L - restLength) * n; //Minus
+		float3 deltaPosPJ = stiffness * wj / (wi + wj) * (L - restLength) * n; //Plus
+
+		AtomicAddDelta(startIndex, deltaPosPI.x, 0);
+		AtomicAddDelta(startIndex, deltaPosPI.y, 1);
+		AtomicAddDelta(startIndex, deltaPosPI.z, 2);
+
+		AtomicAddDelta(endIndex, deltaPosPJ.x, 0);
+		AtomicAddDelta(endIndex, deltaPosPJ.y, 1);
+		AtomicAddDelta(endIndex, deltaPosPJ.z, 2);
 	}
-	float wi = invMass;
-	float wj = invMass;
-	float stiffness = L < restLength ? compressionStiffness : stretchStiffness;
+	else {
+		BendingConstraintStruct constraint = bendingConstraints[id.x - numDistanceConstraints];
 
-	float3 deltaPosPI = -stiffness * wi / (wi + wj) * (L - restLength) * n; //Minus
-	float3 deltaPosPJ = stiffness * wj / (wi + wj) * (L - restLength) * n; //Plus
+		float3 p0 = projectedPositions[constraint.index0];
+		float3 p1 = projectedPositions[constraint.index1];
+		float3 p2 = projectedPositions[constraint.index2];
+		float3 p3 = projectedPositions[constraint.index3];
+		float restAngle = constraint.restAngle;
 
-	AtomicAddDelta(startIndex, deltaPosPI.x, 0);
-	AtomicAddDelta(startIndex, deltaPosPI.y, 1);
-	AtomicAddDelta(startIndex, deltaPosPI.z, 2);
+		float3 wing = p3 - p2;
+		float wingLength = length(wing);
 
-	AtomicAddDelta(endIndex, deltaPosPJ.x, 0);
-	AtomicAddDelta(endIndex, deltaPosPJ.y, 1);
-	AtomicAddDelta(endIndex, deltaPosPJ.z, 2);
+		if (wingLength >= 1e-7) {
+			//get normals
+			float3 n1 = cross(p2 - p0, p3 - p0);
+			n1 /= dot(n1, n1);
+
+			float3 n2 = cross(p3 - p1, p2 - p1);
+			n2 /= dot(n2, n2);
+			//unlike in the original PBD paper,
+			// both normals point in same direction
+
+			//getting constraints along gradients (gradpC)
+			float invWingLength = 1.0f / wingLength;
+
+			float3 q0 = wingLength * n1;
+			float3 q1 = wingLength * n2;
+			float3 q2 = dot(p0 - p3, wing) * invWingLength * n1
+				+ dot(p1 - p3, wing) * invWingLength * n2;
+			float3 q3 = dot(p2 - p0, wing) * invWingLength * n1
+				+ dot(p2 - p1, wing) * invWingLength * n2;
+
+			//find current angle
+			n1 = normalize(n1);
+			n2 = normalize(n2);
+
+			float d = dot(n1, n2);
+			d = clamp(d, -1.0f, 1.0f);
+			float currentAngle = acos(d);
+
+			//find lamda ( where deltap = lamda*wi*gradConstraint )
+			float lamda = 0;
+			lamda += invMass * dot(q0, q0);
+			lamda += invMass * dot(q1, q1);
+			lamda += invMass * dot(q2, q2);
+			lamda += invMass * dot(q3, q3);
+
+			if (lamda != 0.0f) {
+				lamda = (currentAngle - restAngle) / lamda * bendingStiffness;
+
+				if (dot(cross(n1, n2), wing) > 0.0f) {
+					lamda = -lamda;
+				}
+
+				projectedPositions[constraint.index0] -= invMass * lamda * q0;
+				projectedPositions[constraint.index1] -= invMass * lamda * q1;
+				projectedPositions[constraint.index2] -= invMass * lamda * q2;
+				projectedPositions[constraint.index3] -= invMass * lamda * q3;
+
+				float3 deltaPos0 = -invMass * lamda * q0;
+				float3 deltaPos1 = -invMass * lamda * q1;
+				float3 deltaPos2 = -invMass * lamda * q2;
+				float3 deltaPos3 = -invMass * lamda * q3;
+
+				AtomicAddDelta(constraint.index0, deltaPos0.x, 0);
+				AtomicAddDelta(constraint.index0, deltaPos0.y, 1);
+				AtomicAddDelta(constraint.index0, deltaPos0.z, 2);
+				InterlockedAdd(deltaCount[constraint.index0], 1);
+
+				AtomicAddDelta(constraint.index1, deltaPos1.x, 0);
+				AtomicAddDelta(constraint.index1, deltaPos1.y, 1);
+				AtomicAddDelta(constraint.index1, deltaPos1.z, 2);
+				InterlockedAdd(deltaCount[constraint.index1], 1);
+
+				AtomicAddDelta(constraint.index2, deltaPos2.x, 0);
+				AtomicAddDelta(constraint.index2, deltaPos2.y, 1);
+				AtomicAddDelta(constraint.index2, deltaPos2.z, 2);
+				InterlockedAdd(deltaCount[constraint.index2], 1);
+
+				AtomicAddDelta(constraint.index3, deltaPos3.x, 0);
+				AtomicAddDelta(constraint.index3, deltaPos3.y, 1);
+				AtomicAddDelta(constraint.index3, deltaPos3.z, 2);
+				InterlockedAdd(deltaCount[constraint.index3], 1);
+			}
+		}
+	}
 }
 
 
@@ -177,13 +277,9 @@ void AverageConstraintDeltas(uint3 id : SV_DispatchThreadID){
 	projectedPositions[index] += deltaPos[index] * 1.5f;
 
 	// reset delta buffers to zero
-	deltaPos[index].x = 0.0f;
-	deltaPos[index].y = 0.0f;
-	deltaPos[index].z = 0.0f;
+	deltaPos[index] = float3(0, 0, 0);
 
-	deltaPosAsInt[index].x = 0;
-	deltaPosAsInt[index].y = 0;
-	deltaPosAsInt[index].z = 0;
+	deltaPosAsInt[index] = uint3(0, 0, 0);
 
 	deltaCount[index] = 0;
 }
@@ -237,14 +333,15 @@ void SatisfyCubeCollisions(uint3 id : SV_DispatchThreadID) {
 				}
 			}
 
-			float3 newPos;
-			for (int j = 0; j < 3; j++) {
-				if (j == closestAxis) {
-					newPos[j] = (extent[j] + 0.001f) * sign(localPosition[j]);
-				}
-				else {
-					newPos[j] = localPosition[j];
-				}
+			float3 newPos = localPosition;
+			if (closestAxis == 0) {
+				newPos.x = (extent.x + 0.001f) * sign(localPosition.x);
+			}
+			else if (closestAxis == 1) {
+				newPos.y = (extent.y + 0.001f) * sign(localPosition.y);
+			}
+			else if (closestAxis == 2) {
+				newPos.z = (extent.z + 0.001f) * sign(localPosition.z);
 			}
 
 			projectedPosition = newPos + center;
