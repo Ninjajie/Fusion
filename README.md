@@ -186,7 +186,7 @@ Finally, the GPU and CPU versions of the algorithm were tested on different reso
 
 _Tested on: Windows 10, i7-7700HQ @ 2.80GHz, 16GB, GTX 1050 4GB (Personal Laptop)_
 
-_**We didn't implement the CPU version of PBF, so no comparison between CPU and GPU is provided**_
+_**We didn't implement the CPU version of PBF, so no comparison between CPU and GPU is provided, but as far as the authors suspect, the CPU equivalent version runs probably at <=30 fps**_
 
  * Time step vs. FPS
 
