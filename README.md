@@ -1,5 +1,9 @@
 # Fusion - Unity Physics on GPU
 
+![](DemoImages/SphereCollision.gif)
+
+![](DemoImages/WideRes.gif)
+
 ## Introduction
 
 Fusion is built in the spirit of enabling developers to have "physics" in their game without sacrificing performance, or at least, not too much performance. We choose to base our simulation on **Position-Based-Dynamics**, which already gives good performances when running on CPU and pretty easy to parallelize.
@@ -51,7 +55,13 @@ and so on.
 
 #### Interactivity
 
-You can interact with the cloth and environment easily as the gifs suggest.
+You can set your own point constraints on the cloth in the inspector or by dragging your mouse.
+
+![](DemoImages/MouseInteraction.gif)
+
+The cloth is completely integrated into Unity, so feel free to move/rotate it just like any other gameobject.
+
+![](DemoImages/UnityIntegration.gif)
 
 ## 4. Fluid
 
