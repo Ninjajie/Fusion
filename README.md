@@ -1,11 +1,135 @@
-# Fusion
-Unity Physics on GPU
+# Fusion - Unity Physics on GPU
 
-## Interactive Fluid Demo
-![](DemoImages/fluid1.gif)
---------------------------------
+## Introduction
 
-## Interactive Fluid Demo2
-![](DemoImages/fluid2.gif)
---------------------------------
+Fusion is built in the spirit of enabling developers to have "physics" in their game without sacrificing performance, or at least, not too much performance. We choose to base our simulation on **Position-Based-Dynamics**, which already gives good performances when running on CPU and pretty easy to parallelize.
 
+PBD could support many types of physical objects, we choose to implement **Cloth** and **Fluid** since they are hard to achieve without actual physics simulation, and they give vivid results when finished.
+
+We aimed at making a usable **Unity plugin** so that the users could easily add physics-conformed cloth and fluid in their game environment or make a game fully focused on interaction with fluid or cloth.
+
+## Table of Contents
+ - [PBD](#thepositionbaseddynamicsmethod)
+
+
+## 1. The Position Based Dynamics method
+PBD is basically a method to do physics simulation. Comparing to other traditional methods like mass-spring system, FEM, SPH and FLIP, PBD is not physically accurate because no inner force of the system is calculated from physical laws. But a huge advantage of PBD is that it's very fast, and produces visually-plausible simulation results, which makes PBD perfect solution for simulation in games. 
+
+In PBD, physics is simulated by inter-particle "constraints", this feature makes PBD quite flexible since we can just keep adding new types of constraints to the system to simulate the physical properties we want.
+
+PBD is originally designed for cloth simulation, but newer PBD methods could supports new types of objects like rigid body and fluid.
+
+Another reason we choose PBD is because it's easy to parallelize so that we could run it on the GPU to accelerate the simulations. As the [Paper]() mentioned, the Jacobi solver is very suitable for Massively parallel plantform like modern GPUs.
+
+
+## 2. GPU computing in Unity
+Unity now supports GPU computing feature by adapting Microsoft's DirectCompute technique into unity. The compute shaders are written in HLSL and can utilize GPU computing in a similar fashion as CUDA: the kernels are defined in compute shaders, you pack and pass data from CPU side through compute buffers, then after compute you read data from CPU side and use it in whatever way you want.
+
+To start with unity's compute shaders, I found these tutorials and examples quite helpful. Starting with a simple particle system example should provide enough knowledge to begin with.
+
+
+## 3. Cloth
+The way position based dynamics handles cloth simulation is quite simple: each vertex in the cloth is treated as a particle with various inter-particle "constraints", and the algorithm simply needs to make sure none of the constraints are violated at every frame. 
+
+An important thing to note is that none of these constraints are physics based; they are simply introduced to make sure the particles behave a certain way that looks correct. The distance constraint, for example, simply makes sure two connected vertices don't stretch too much beyond their starting distance. The bending constraint makes sure two connected triangles don't bend too much beyond or below a certain starting angle.
+
+Many expressive constraints are invented every year since the algorithm was first described in 2008, and the ability to add any constraint to the simulation to achieve a desired effect is one of the advantages of this algorithm.
+
+#### Cloth Plugin User Guide
+The UI following the cloth script:
+
+![](DemoImage/ClothUI.png)
+
+Inside UI you can directly change almost all controllable variables, including:
+ - Time step
+ - Iteration number
+ - Constraint weights and vertices' mass
+
+and so on.
+
+#### Interactivity
+
+You can interact with the cloth and environment easily as the gifs suggest.
+
+## 4. Fluid
+
+#### The position based fluid
+
+
+Comparing to Cloth simulation, PBD fluid, or shortly, PBF, requires not only new types of constraints, but also extra stages in the computation pipeline. As the following flow chart suggests:
+
+![](DemoImage/FluidChart.png)
+
+Fluid simulation requires searching for neighboring particles, so we construct and maintain a hash grid structure for the solver, from which you can easily get the particle IDs inside any Cell or grid simply by providing the cell ID the current particle lies in.
+
+In completing the hash grid structure, a sorting algorithm is required to perform efficient sorting on <key,value> pairs. Here parallel Bitonic sorting is adapted from Microsoft's example code of DirectX SDK. 
+
+#### Fluid Plugin User Guide
+To create a fluid simulation scene, first of all you need to create a gameobject and attach the `PBFluidScript.cs` to it as a component. In the UI element following the script:
+
+![](DemoImage/FluidUI1.png)
+
+Inside the UI, you can directly change:
+ - The time step 
+ - The amount of particles you want to have in the simulation
+ - The initial velocity of the fluid chuck
+ - The number of iterations the solver runs
+ - The thickness of Boundary
+
+Besides, to actually view the particles, you need 
+ - A material for the particles, using the `Particle` shader to enable GPU instancing
+ - A mesh for the individual particles
+
+In order to make the fluid simulation interactive, the plugin enables:
+ - create a cube of any size, and assign its transformation to the script's _ContainerTransform_, so that the fluid is within the container
+ - create a cube defining the volume of the fluid body, the fluid particles will start moving from the position that this cube defines, assign its transformation to the _FluidChunkTransform_
+ - To ignore the cube above in rendering, assign its mesh renderer to the _FluidChuckRenderer_
+
+![](DemoImage/FluidUI2.png)
+
+The above image shows an example scene of fluid simulation. Then you are ready to go.
+
+#### Interactivity
+
+Create blast in the fluid by click left button on mouse.
+ - Raycasting is used to find the intersection point, then a blast is created.
+
+![](DemoImage/fluid1.gif)
+
+Pause the simulation by pressing `Space`, then rescale the container by `J` `K` `L` `U` `I` `O`, press `B` to resume when you are ready.
+
+ - A new hash grid and a new solver object is reconstructed when you resume the simulation.
+
+![](DemoImage/fluid2.gif)
+
+## 5. More Possible Physical Object types
+The project successfully demonstrated the flexibility of the GPU+PBD+Unity framework. Given this fact, more types of physical objects are achievable. For example, Rigid body can be easily simulated by a constraint that tries to maintain the body's original shape. 
+
+For more options, check [The Position Based Dynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) on GitHub and the PBD paper for some inspirations.
+
+## 6. Performance - The power of GPU
+Some charts about FPS or render time(ms)
+
+
+## 7. Authors
+- [Jie Meng](https://github.com/Ninjajie)
+- [Ethan Shou](https://github.com/asacoolguy)
+
+FYI, we are team Jethan(J Ethan)
+
+## 8. References
+-	[Unite2016 Talk on GPU Accelerated Cloth Sim in Unity](https://www.youtube.com/watch?v=kCGHXlLR3l8)
+-	[A Survey on Position Based Dynamics, 2017](https://www.animation.rwth-aachen.de/media/papers/2017-EG-CourseNotes.pdf)
+-	[Unified Simulation of Rigid and Flexible Bodies using Position Based Dynamics](https://diglib.eg.org/handle/10.2312/vriphys20171083)
+-	[The Position Based Dynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics)
+-	[Microsoft's Documentation on HLSL](https://docs.microsoft.com/en-us/windows/desktop/direct3dhlsl/dx-graphics-hlsl)
+-   [XParticle - a simple example of unity compute shaders](https://github.com/antoinefournier/XParticle)
+-   [Bitonic Sort](https://www.geeksforgeeks.org/bitonic-sort/)
+-   [Bitonic Sort in compute shader](https://github.com/hjwdzh/Fluid3D)
+
+## 9. Easter Eggs
+some bloopers:
+
+some cloth bloopers
+
+some fluid bloopers
