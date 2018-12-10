@@ -33,6 +33,8 @@ The way position based dynamics handles cloth simulation is quite simple: each v
 
 An important thing to note is that none of these constraints are physics based; they are simply introduced to make sure the particles behave a certain way that looks correct. The distance constraint, for example, simply makes sure two connected vertices don't stretch too much beyond their starting distance. The bending constraint makes sure two connected triangles don't bend too much beyond or below a certain starting angle.
 
+![](DemoImages/ClothChart.png)
+
 Many expressive constraints are invented every year since the algorithm was first described in 2008, and the ability to add any constraint to the simulation to achieve a desired effect is one of the advantages of this algorithm.
 
 #### Cloth Plugin User Guide
@@ -108,7 +110,49 @@ The project successfully demonstrated the flexibility of the GPU+PBD+Unity frame
 For more options, check [The Position Based Dynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics) on GitHub and the PBD paper for some inspirations.
 
 ## 6. Performance - The power of GPU
-Some charts about FPS or render time(ms)
+
+#### Performance on Cloth: Comparisons between CPU and GPU cloth
+
+_Tested on: Windows 10, i7-6500U @ 2.50GHz 12GB RAM, GeForce 940M 8GB (Personal Laptop)_
+
+The timestep of the simulation determines how many times the entire algorithm is run per frame. A lower timestep is generally required as the resolution of the cloth increases, though the cloth will appear very stiff when the timestep is too low. In the below graph, we can see that the GPU version of the algorithm handles a decreasing timestep a lot better than the CPU.
+
+![](DemoImages/clothPerformance1.png)
+
+The iteration number controls the number of times the constraints are enforced. Similar to the timestep, a higher iteration number is usually required as the simulation gets more complex; an overly-high iteration number will also make the cloth seem stiff due to the over-enforcement of the constraints. The GPU version of the algorithm also does a much better job here than the CPU version. The framerate remained consistently over 60 and did not suffer any dips like it did with the timestep. This is probably because an decreased timestep increases the number of times the entire algorithm is run, while an increased iteration number only increases the number of times the constraint portion of the algorithm is run.
+
+
+![](DemoImages/clothPerformance2.png)
+
+
+Finally, the GPU and CPU versions of the algorithm were tested on different resolutions of the cloth. The resolution of the cloth is essential to how real the cloth simulation looks, as a low resolution will make the cloth look blocky. The CPU version proved unable to handle anything more than 10x10, while the GPU version could handle 30x30 at a reasonable framerate. 
+
+![](DemoImages/clothPerformance3.png)
+
+
+#### Performance on Fluid: the GPU power benchmark
+
+_Tested on: Windows 10, i7-7700HQ @ 2.80GHz, 16GB, GTX 1050 4GB (Personal Laptop)_
+
+_**We didn't implement the CPU version of PBF, so no comparison between CPU and GPU is provided**_
+
+ * Time step vs. FPS
+
+![](DemoImages/fluidPerformance1.png)
+
+Similar to Cloth, the solver needs a smaller time step when particle amount goes high. Also, you can see more subtle details in the fluid simulation when time step goes down, which shows that timestep is crucial to physical simulations. But: PBD fluid are very stable even in high time steps like 0.01sec. And the FPS doesn't suffer a lot from the change of time step.
+
+ * Iteration Number vs. FPS
+
+![](DemoImages/fluidPerformance2.png)
+
+Theoretically, a larger number of iterations are required for more complex scene like more particles, but the whole simulation would get dramatically slowed down if you run the solver more times in a frame.
+
+ * Number of Particles vs. FPS
+
+![](DemoImages/fluidPerformance3.png)
+
+The number of particles to simulate is a critical factor to the FPS. As opposed to more advanced simulation techniques like Tall Cells, GPU version PBF could only decently handle ~100k particles(as of our Unity implementation). And as we have more and more particles in the scene, the simulation got farther and farther away from real-time. 
 
 
 ## 7. Authors
