@@ -1,5 +1,9 @@
 # Fusion - Unity Physics on GPU
 
+![](DemoImages/SphereCollision.gif)
+
+![](DemoImages/WideRes.gif)
+
 ## Authors
 * Jie Meng
   * [GitHub](https://github.com/Ninjajie), [personal website](https://jie-m.com), [LinkedIn](https://www.linkedin.com/in/jie-meng)
@@ -8,6 +12,7 @@
   * [LinkedIn](https://www.linkedin.com/in/yichen-shou-68023455/), [personal website](https://www.yichenshou.com/), [Github](https://github.com/asacoolguy)
 
 FYI, we are team Jethan(J Ethan)
+
 
 ## Introduction
 
@@ -60,7 +65,13 @@ and so on.
 
 #### Interactivity
 
-You can interact with the cloth and environment easily as the gifs suggest.
+You can set your own point constraints on the cloth in the inspector or by dragging your mouse.
+
+![](DemoImages/MouseInteraction.gif)
+
+The cloth is completely integrated into Unity, so feel free to move/rotate it just like any other gameobject.
+
+![](DemoImages/UnityIntegration.gif)
 
 ## 4. Fluid
 
