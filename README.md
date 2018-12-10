@@ -70,7 +70,7 @@ Many expressive constraints are invented every year since the algorithm was firs
 #### Cloth Plugin User Guide
 The UI following the cloth script:
 
-![](DemoImages/ClothUI.png)<!-- .element height="50%" width="50%" -->
+![](DemoImages/ClothUI.png){:height="50%" width="50%"}
 
 Inside UI you can directly change almost all controllable variables, including:
  - Time step
