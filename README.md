@@ -70,7 +70,7 @@ Many expressive constraints are invented every year since the algorithm was firs
 #### Cloth Plugin User Guide
 The UI following the cloth script:
 
-![](DemoImages/ClothUI.png)
+![](DemoImages/ClothUI.png)<!-- .element height="50%" width="50%" -->
 
 Inside UI you can directly change almost all controllable variables, including:
  - Time step
@@ -129,16 +129,20 @@ The above image shows an example scene of fluid simulation. Then you are ready t
 
 #### Interactivity
 
+Move and resize the fluid body chunk to create the fluid body and start simulation
+
+![](DemoImages/fluidfinal1.gif)
+
 Create blast in the fluid by click left button on mouse.
  - Raycasting is used to find the intersection point, then a blast is created.
 
-![](DemoImages/fluid1.gif)
+![](DemoImages/fluidfinal2.gif)
 
 Pause the simulation by pressing `Space`, then rescale the container by `J` `K` `L` `U` `I` `O`, press `B` to resume when you are ready.
 
  - A new hash grid and a new solver object is reconstructed when you resume the simulation.
 
-![](DemoImages/fluid2.gif)
+![](DemoImages/fluidfinal3.gif)
 
 ## 5. More Possible Physical Object types
 The project successfully demonstrated the flexibility of the GPU+PBD+Unity framework. Given this fact, more types of physical objects are achievable. For example, Rigid body can be easily simulated by a constraint that tries to maintain the body's original shape. 
