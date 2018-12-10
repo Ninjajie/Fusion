@@ -23,7 +23,23 @@ PBD could support many types of physical objects, we choose to implement **Cloth
 We aimed at making a usable **Unity plugin** so that the users could easily add physics-conformed cloth and fluid in their game environment or make a game fully focused on interaction with fluid or cloth.
 
 ## Table of Contents
- - [PBD](#thepositionbaseddynamicsmethod)
+ - [Authors](https://github.com/Ninjajie/Fusion#authors)
+ - [Introduction](https://github.com/Ninjajie/Fusion#introduction)
+ - [1. PBD](https://github.com/Ninjajie/Fusion#1-the-position-based-dynamics-method)
+ - [2. GPU computing in Unity](https://github.com/Ninjajie/Fusion#2-gpu-computing-in-unity)
+ - [3. Cloth Simulation](https://github.com/Ninjajie/Fusion#3-cloth)
+   - [Cloth Plugin](https://github.com/Ninjajie/Fusion#cloth-plugin-user-guide)
+   - [Interactivity](https://github.com/Ninjajie/Fusion#interactivity)
+ - [4.Fluids Simulation](https://github.com/Ninjajie/Fusion#4-fluid)
+   - [PBF](https://github.com/Ninjajie/Fusion#the-position-based-fluid)
+   - [Fluid Plugin](https://github.com/Ninjajie/Fusion#fluid-plugin-user-guide)
+   - [Interactivity](https://github.com/Ninjajie/Fusion#interactivity-1)
+ - [5. More Object Types](https://github.com/Ninjajie/Fusion#5-more-possible-physical-object-types)
+ - [6. Performance Analysis](https://github.com/Ninjajie/Fusion#6-performance---the-power-of-gpu)
+   - [Cloth Performance](https://github.com/Ninjajie/Fusion#6-performance---the-power-of-gpu)
+   - [Fluid Performance](https://github.com/Ninjajie/Fusion#performance-on-fluid-the-gpu-power-benchmark)
+ - [7. References](https://github.com/Ninjajie/Fusion#8-references)
+ - [8. Easter Eggs](https://github.com/Ninjajie/Fusion#9-easter-eggs)
 
 
 ## 1. The Position Based Dynamics method
@@ -175,7 +191,7 @@ Theoretically, a larger number of iterations are required for more complex scene
 The number of particles to simulate is a critical factor to the FPS. As opposed to more advanced simulation techniques like Tall Cells, GPU version PBF could only decently handle ~100k particles(as of our Unity implementation). And as we have more and more particles in the scene, the simulation got farther and farther away from real-time. 
 
 
-## 8. References
+## 7. References
 -	[Unite2016 Talk on GPU Accelerated Cloth Sim in Unity](https://www.youtube.com/watch?v=kCGHXlLR3l8)
 -	[A Survey on Position Based Dynamics, 2017](https://www.animation.rwth-aachen.de/media/papers/2017-EG-CourseNotes.pdf)
 -	[Unified Simulation of Rigid and Flexible Bodies using Position Based Dynamics](https://diglib.eg.org/handle/10.2312/vriphys20171083)
@@ -185,9 +201,4 @@ The number of particles to simulate is a critical factor to the FPS. As opposed 
 -   [Bitonic Sort](https://www.geeksforgeeks.org/bitonic-sort/)
 -   [Bitonic Sort in compute shader](https://github.com/hjwdzh/Fluid3D)
 
-## 9. Easter Eggs
-some bloopers:
-
-some cloth bloopers
-
-some fluid bloopers
+## 8. Easter Eggs
