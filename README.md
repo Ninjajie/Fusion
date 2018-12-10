@@ -70,8 +70,7 @@ Many expressive constraints are invented every year since the algorithm was firs
 #### Cloth Plugin User Guide
 The UI following the cloth script:
 
-![](DemoImages/ClothUI.png)
-<img src="https://github.com/Ninjajie/Fusion/blob/master/DemoImages/ClothUI.png" width="200">
+<img src="https://github.com/Ninjajie/Fusion/blob/master/DemoImages/ClothUI.png" width="500">
 
 Inside UI you can directly change almost all controllable variables, including:
  - Time step
@@ -106,7 +105,7 @@ In completing the hash grid structure, a sorting algorithm is required to perfor
 #### Fluid Plugin User Guide
 To create a fluid simulation scene, first of all you need to create a gameobject and attach the `PBFluidScript.cs` to it as a component. In the UI element following the script:
 
-![](DemoImages/FluidUI1.png)
+<img src="https://github.com/Ninjajie/Fusion/blob/master/DemoImages/FluidUI1.png" width="500">
 
 Inside the UI, you can directly change:
  - The time step 
@@ -207,3 +206,5 @@ The number of particles to simulate is a critical factor to the FPS. As opposed 
 -   [Bitonic Sort in compute shader](https://github.com/hjwdzh/Fluid3D)
 
 ## 8. Easter Eggs
+
+![](DemoImages/Blooper.gif)
