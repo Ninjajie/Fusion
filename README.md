@@ -38,7 +38,7 @@ Many expressive constraints are invented every year since the algorithm was firs
 #### Cloth Plugin User Guide
 The UI following the cloth script:
 
-![](DemoImage/ClothUI.png)
+![](DemoImages/ClothUI.png)
 
 Inside UI you can directly change almost all controllable variables, including:
  - Time step
@@ -58,7 +58,7 @@ You can interact with the cloth and environment easily as the gifs suggest.
 
 Comparing to Cloth simulation, PBD fluid, or shortly, PBF, requires not only new types of constraints, but also extra stages in the computation pipeline. As the following flow chart suggests:
 
-![](DemoImage/FluidChart.png)
+![](DemoImages/FluidChart.png)
 
 Fluid simulation requires searching for neighboring particles, so we construct and maintain a hash grid structure for the solver, from which you can easily get the particle IDs inside any Cell or grid simply by providing the cell ID the current particle lies in.
 
@@ -67,7 +67,7 @@ In completing the hash grid structure, a sorting algorithm is required to perfor
 #### Fluid Plugin User Guide
 To create a fluid simulation scene, first of all you need to create a gameobject and attach the `PBFluidScript.cs` to it as a component. In the UI element following the script:
 
-![](DemoImage/FluidUI1.png)
+![](DemoImages/FluidUI1.png)
 
 Inside the UI, you can directly change:
  - The time step 
@@ -85,7 +85,7 @@ In order to make the fluid simulation interactive, the plugin enables:
  - create a cube defining the volume of the fluid body, the fluid particles will start moving from the position that this cube defines, assign its transformation to the _FluidChunkTransform_
  - To ignore the cube above in rendering, assign its mesh renderer to the _FluidChuckRenderer_
 
-![](DemoImage/FluidUI2.png)
+![](DemoImages/FluidUI2.png)
 
 The above image shows an example scene of fluid simulation. Then you are ready to go.
 
@@ -94,13 +94,13 @@ The above image shows an example scene of fluid simulation. Then you are ready t
 Create blast in the fluid by click left button on mouse.
  - Raycasting is used to find the intersection point, then a blast is created.
 
-![](DemoImage/fluid1.gif)
+![](DemoImages/fluid1.gif)
 
 Pause the simulation by pressing `Space`, then rescale the container by `J` `K` `L` `U` `I` `O`, press `B` to resume when you are ready.
 
  - A new hash grid and a new solver object is reconstructed when you resume the simulation.
 
-![](DemoImage/fluid2.gif)
+![](DemoImages/fluid2.gif)
 
 ## 5. More Possible Physical Object types
 The project successfully demonstrated the flexibility of the GPU+PBD+Unity framework. Given this fact, more types of physical objects are achievable. For example, Rigid body can be easily simulated by a constraint that tries to maintain the body's original shape. 
