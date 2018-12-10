@@ -148,13 +148,13 @@ Move and resize the fluid body chunk to create the fluid body and start simulati
 Create blast in the fluid by click left button on mouse.
  - Raycasting is used to find the intersection point, then a blast is created.
 
-![](DemoImages/fluidfinal2.gif)
+![](DemoImages/fluidfinal2CropedResized.gif)
 
 Pause the simulation by pressing `Space`, then rescale the container by `J` `K` `L` `U` `I` `O`, press `B` to resume when you are ready.
 
  - A new hash grid and a new solver object is reconstructed when you resume the simulation.
 
-![](DemoImages/fluidfinal3.gif)
+![](DemoImages/fluidfinal3ResizedCroped.gif)
 
 ## 5. More Possible Physical Object types
 The project successfully demonstrated the flexibility of the GPU+PBD+Unity framework. Given this fact, more types of physical objects are achievable. For example, Rigid body can be easily simulated by a constraint that tries to maintain the body's original shape. 
