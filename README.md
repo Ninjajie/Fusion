@@ -1,8 +1,13 @@
 # Fusion - Unity Physics on GPU
 
 ![](DemoImages/SphereCollision.gif)
-
+---------------------------------
 ![](DemoImages/WideRes.gif)
+-----------------------------------
+![](DemoImages/fluidfinal2.gif)
+---------------------------------------
+![](DemoImages/fluidfinal3.gif)
+---------------------------------
 
 ## Authors
 * Jie Meng
