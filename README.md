@@ -4,9 +4,9 @@
 ---------------------------------
 ![](DemoImages/WideRes.gif)
 -----------------------------------
-![](DemoImages/fluidfinal2.gif)
+![](DemoImages/fluidfinal2CropedResized.gif)
 ---------------------------------------
-![](DemoImages/fluidfinal3.gif)
+![](DemoImages/fluidfinal3ResizedCroped.gif)
 ---------------------------------
 
 ## Authors
@@ -18,6 +18,9 @@
 
 FYI, we are team Jethan(J Ethan)
 
+## To Use
+
+**To use Fusion Plugin, simply download or clone, and open the project in Unity. Follow the User guide in [Cloth Plugin](https://github.com/Ninjajie/Fusion#cloth-plugin-user-guide) and [Fluid Plugin](https://github.com/Ninjajie/Fusion#fluid-plugin-user-guide) to generate your physical cloth or fluid**
 
 ## Introduction
 
@@ -93,6 +96,10 @@ You can set your own point constraints on the cloth in the inspector or by dragg
 The cloth is completely integrated into Unity, so feel free to move/rotate it just like any other gameobject.
 
 ![](DemoImages/UnityIntegration.gif)
+
+The plugin (incompletely) supports importing meshes as clothes, but duplicate vertices coming from UVs will make the cloth model into two-pieces, the inner surface and the outer surface. As you can see from the following gif, the simulation runs correctly on both pieces.
+
+![](DemoImages/Dress.gif)
 
 ## 4. Fluid
 
