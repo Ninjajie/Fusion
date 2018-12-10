@@ -1,5 +1,14 @@
 # Fusion - Unity Physics on GPU
 
+## Authors
+* Jie Meng
+  * [GitHub](https://github.com/Ninjajie), [personal website](https://jie-m.com), [LinkedIn](https://www.linkedin.com/in/jie-meng)
+
+* Yichen Shou
+  * [LinkedIn](https://www.linkedin.com/in/yichen-shou-68023455/), [personal website](https://www.yichenshou.com/), [Github](https://github.com/asacoolguy)
+
+FYI, we are team Jethan(J Ethan)
+
 ## Introduction
 
 Fusion is built in the spirit of enabling developers to have "physics" in their game without sacrificing performance, or at least, not too much performance. We choose to base our simulation on **Position-Based-Dynamics**, which already gives good performances when running on CPU and pretty easy to parallelize.
@@ -154,12 +163,6 @@ Theoretically, a larger number of iterations are required for more complex scene
 
 The number of particles to simulate is a critical factor to the FPS. As opposed to more advanced simulation techniques like Tall Cells, GPU version PBF could only decently handle ~100k particles(as of our Unity implementation). And as we have more and more particles in the scene, the simulation got farther and farther away from real-time. 
 
-
-## 7. Authors
-- [Jie Meng](https://github.com/Ninjajie)
-- [Ethan Shou](https://github.com/asacoolguy)
-
-FYI, we are team Jethan(J Ethan)
 
 ## 8. References
 -	[Unite2016 Talk on GPU Accelerated Cloth Sim in Unity](https://www.youtube.com/watch?v=kCGHXlLR3l8)
