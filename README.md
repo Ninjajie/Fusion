@@ -57,13 +57,13 @@ In PBD, physics is simulated by inter-particle "constraints", this feature makes
 
 PBD is originally designed for cloth simulation, but newer PBD methods could supports new types of objects like rigid body and fluid.
 
-Another reason we choose PBD is because it's easy to parallelize so that we could run it on the GPU to accelerate the simulations. As the [Paper]() mentioned, the Jacobi solver is very suitable for Massively parallel plantform like modern GPUs.
+Another reason we choose PBD is because it's easy to parallelize so that we could run it on the GPU to accelerate the simulations. As the [Paper](https://www.animation.rwth-aachen.de/media/papers/2017-EG-CourseNotes.pdf) mentioned, the Jacobi solver is very suitable for Massively parallel plantform like modern GPUs.
 
 
 ## 2. GPU computing in Unity
 Unity now supports GPU computing feature by adapting Microsoft's DirectCompute technique into unity. The compute shaders are written in HLSL and can utilize GPU computing in a similar fashion as CUDA: the kernels are defined in compute shaders, you pack and pass data from CPU side through compute buffers, then after compute you read data from CPU side and use it in whatever way you want.
 
-To start with unity's compute shaders, I found these tutorials and examples quite helpful. Starting with a simple particle system example should provide enough knowledge to begin with.
+To start with unity's compute shaders, I found these [tutorials](https://forum.unity.com/threads/tutorial-to-start-with-compute-shaders.500648/) and [examples](https://github.com/antoinefournier/XParticle) quite helpful. Starting with a simple particle system example should provide enough knowledge to begin with.
 
 
 ## 3. Cloth
@@ -214,6 +214,8 @@ The number of particles to simulate is a critical factor to the FPS. As opposed 
 -	[The Position Based Dynamics library](https://github.com/InteractiveComputerGraphics/PositionBasedDynamics)
 -	[Microsoft's Documentation on HLSL](https://docs.microsoft.com/en-us/windows/desktop/direct3dhlsl/dx-graphics-hlsl)
 -   [XParticle - a simple example of unity compute shaders](https://github.com/antoinefournier/XParticle)
+-   [Unity Forum - tutorials on Compute shaders](https://forum.unity.com/threads/tutorial-to-start-with-compute-shaders.500648/)
+-   [Unity Reddit Post - A game using compute shader](https://www.reddit.com/r/Unity3D/comments/7ppldz/physics_simulation_on_gpu_with_compute_shader_in/)
 -   [Bitonic Sort](https://www.geeksforgeeks.org/bitonic-sort/)
 -   [Bitonic Sort in compute shader](https://github.com/hjwdzh/Fluid3D)
 
