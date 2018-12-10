@@ -38,8 +38,8 @@ We aimed at making a usable **Unity plugin** so that the users could easily add 
  - [6. Performance Analysis](https://github.com/Ninjajie/Fusion#6-performance---the-power-of-gpu)
    - [Cloth Performance](https://github.com/Ninjajie/Fusion#6-performance---the-power-of-gpu)
    - [Fluid Performance](https://github.com/Ninjajie/Fusion#performance-on-fluid-the-gpu-power-benchmark)
- - [7. References](https://github.com/Ninjajie/Fusion#8-references)
- - [8. Easter Eggs](https://github.com/Ninjajie/Fusion#9-easter-eggs)
+ - [7. References](https://github.com/Ninjajie/Fusion#7-references)
+ - [8. Easter Eggs](https://github.com/Ninjajie/Fusion#8-easter-eggs)
 
 
 ## 1. The Position Based Dynamics method
