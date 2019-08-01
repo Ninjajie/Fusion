@@ -1,3 +1,7 @@
+## Notes on repo Maintenance
+This repo is not under maintenance any longer since [authors](https://github.com/Ninjajie/Fusion#authors) have both graduated and started work in the industry. Thanks for your support, and best wishes for all!
+
+
 # Fusion - Unity Physics on GPU
 
 ![](DemoImages/SphereCollision.gif)
